@@ -1,0 +1,25 @@
+[package]
+name = "asterconf"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jonathan Schleucher"]
+
+[dependencies]
+serde = { version = "1.0.208", features = ["derive"]}
+serde_yaml = "0.9.34"
+tokio = { version = "1.39.3", features = ["full"] }
+sqlx = { version = "0.6", features = ["postgres", "runtime-tokio-rustls"] }
+time = { version = "0.3.36", features = ["formatting", "local-offset"] }
+tracing = { version = "0.1.40", features = ["attributes"] }
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.18", features = ["time", "fmt"] }
+chrono = "0.4.38"
+axum = "0.7"
+askama = "0.11"
+blazing_agi = { path = "../blazing_agi" }
+blazing_agi_macros = { path = "../blazing_agi/blazing_agi_macros" }
+async-trait = "0.1.81"
+sha1 = "0.10.6"
+rand = "0.8.5"
+hex = "0.4.3"
+

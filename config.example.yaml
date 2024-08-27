@@ -1,0 +1,30 @@
+# list of extensions that you want to give a human readable name
+# all extensions may be used; the value in extension is what asterisk will actually call
+extensions:
+- name: "Jon Doe"
+  extension: "702"
+
+# list of contexts you want to be able to specify for call forwards
+# contexts that are not defined here can NOT be used to call forward in
+contexts:
+- display_name: "Extern"
+  asterisk_name: "from_external"
+- display_name: "Internal"
+  asterisk_name: "from_internal"
+
+db_user: "asterconf"
+db_password: "NOT_THE_PASSWORD"
+db_port: 5432
+db_host: "the.host"
+db_database: "asterconf"
+
+tls_cert_file: "TODO"
+tls_key_file: "TODO"
+
+web_bind_addr: "127.0.0.1"
+web_bind_port: 8080
+
+agi_bind_addr: "127.0.0.1"
+agi_bind_port: 4573
+agi_digest_secret: "top_secret"
+
