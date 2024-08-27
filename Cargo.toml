@@ -12,9 +12,8 @@ sqlx = { version = "0.6", features = ["postgres", "runtime-tokio-rustls"] }
 time = { version = "0.3.36", features = ["formatting", "local-offset"] }
 tracing = { version = "0.1.40", features = ["attributes"] }
 tracing-appender = "0.2.3"
-tracing-subscriber = { version = "0.3.18", features = ["time", "fmt"] }
+tracing-subscriber = { version = "0.3.18", features = ["time", "fmt", "env-filter"] }
 chrono = "0.4.38"
-axum = "0.7"
 askama = "0.11"
 blazing_agi = { path = "../blazing_agi" }
 blazing_agi_macros = { path = "../blazing_agi/blazing_agi_macros" }
@@ -22,4 +21,6 @@ async-trait = "0.1.81"
 sha1 = "0.10.6"
 rand = "0.8.5"
 hex = "0.4.3"
+axum = "0.7.5"
+axum-server = { version = "0.7.1", features = ["tls-rustls"] }
 

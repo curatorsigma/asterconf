@@ -23,6 +23,7 @@ tls_key_file: "TODO"
 
 web_bind_addr: "127.0.0.1"
 web_bind_port: 8080
+web_bind_port_tls: 8443
 
 agi_bind_addr: "127.0.0.1"
 agi_bind_port: 4573

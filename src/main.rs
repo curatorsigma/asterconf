@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use tracing::level_filters::LevelFilter;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{filter, fmt::format::FmtSpan};
-use tracing_subscriber::{fmt, prelude::*};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 mod agi_server;
 mod db;
@@ -20,12 +21,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Should be able to create file appender");
     let (writer, _guard) = tracing_appender::non_blocking(file_appender);
 
+    let my_crate_filter = EnvFilter::new("asterconf,blazing_agi");
     let subscriber = tracing_subscriber::registry()
+        .with(my_crate_filter)
         .with(
             tracing_subscriber::fmt::layer()
                 .compact()
                 .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-                .with_target(false)
+                .with_line_number(true)
                 .with_filter(filter::LevelFilter::DEBUG),
         )
         .with(fmt::Layer::default().with_writer(writer));

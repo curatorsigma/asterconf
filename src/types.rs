@@ -2,6 +2,7 @@ use std::fs::File;
 use std::path::Path;
 use std::{collections::HashMap, fmt::Display};
 
+use axum_server::tls_rustls::RustlsConfig;
 /// Structs used by the other components
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -167,6 +168,7 @@ struct ConfigFileData {
     tls_key_file: String,
     web_bind_addr: String,
     web_bind_port: u16,
+    web_bind_port_tls: u16,
     agi_bind_addr: String,
     agi_bind_port: String,
     agi_digest_secret: String,
@@ -182,10 +184,17 @@ pub struct Config {
     pub(crate) pool: PgPool,
     // addr:port to bind the webserver to
     pub(crate) web_bind_string: String,
+    // the port (we need it as u16 later)
+    pub(crate) web_bind_port: u16,
+    // the same for TLS
+    pub(crate) web_bind_string_tls: String,
+    pub(crate) web_bind_port_tls: u16,
     // addr:port to bind agi server to
     pub(crate) agi_bind_string: String,
     // the secret used in the SHA digest
     pub(crate) agi_digest_secret: String,
+    /// config for the TLS layer
+    pub(crate) rustls_config: RustlsConfig,
 }
 impl Config {
     // this will never be called inside the actual application (only during setup)
@@ -217,10 +226,13 @@ impl Config {
         );
         let pool = sqlx::postgres::PgPool::connect(&url).await?;
         // webserver settings
-        // TODO: tls settings
         let web_bind_string = format!(
             "{}:{}",
             config_data.web_bind_addr, config_data.web_bind_port
+        );
+        let web_bind_string_tls = format!(
+            "{}:{}",
+            config_data.web_bind_addr, config_data.web_bind_port_tls
         );
         let agi_bind_string = format!(
             "{}:{}",
@@ -231,8 +243,12 @@ impl Config {
             contexts,
             pool,
             web_bind_string,
+            web_bind_string_tls,
+            web_bind_port: config_data.web_bind_port,
+            web_bind_port_tls: config_data.web_bind_port_tls,
             agi_bind_string,
             agi_digest_secret: config_data.agi_digest_secret,
+            rustls_config: RustlsConfig::from_pem_file(config_data.tls_cert_file, config_data.tls_key_file).await.expect("tls file should exist"),
         })
     }
 }

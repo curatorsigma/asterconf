@@ -54,7 +54,7 @@ fn create_nonce() -> String {
     return hex::encode(raw_bytes);
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct SHA1DigestOverAGI {
     secret: String,
 }
@@ -70,6 +70,7 @@ impl AGIHandler for SHA1DigestOverAGI {
     // Note: this handler does not care about the request.
     // It simply ignores it and does the AGI digest.
     // This handler effectively works as a layer later)
+    #[tracing::instrument(name="SHA1DigestOverAGI::handle",skip(self, connection), level=Level::DEBUG)]
     async fn handle(&self, connection: &mut Connection, _: &AGIRequest) -> Result<(), AGIError> {
         let nonce = create_nonce();
         let mut hasher = Sha1::new();
@@ -92,13 +93,13 @@ impl AGIHandler for SHA1DigestOverAGI {
                 != *hex::decode(digest_as_str)
                     .map_err(|_| AGIError::InnerError(Box::new(SHA1DigestError::DecodeError)))?
             {
-                event!(Level::WARN, "Expected Digest {}, got {}", hex::encode(expected_digest), digest_as_str);
+                event!(Level::WARN, "Expected Digest {}, got {}. Nonce is {}", hex::encode(expected_digest), digest_as_str, nonce);
                 connection
                     .send_command(AGICommand::Verbose(
                         "Unauthenticated: Wrong Digest.".to_string(),
                     ))
                     .await?;
-                Err(AGIError::InnerError(Box::new(SHA1DigestError::WrongDigest)))
+                Err(AGIError::ClientSideError("The Client supplied the wrong digest data.".to_string()))
             } else {
                 Ok(())
             }
@@ -110,6 +111,7 @@ impl AGIHandler for SHA1DigestOverAGI {
 
 /// The route handler for call_forward
 
+#[derive(Debug)]
 struct HandleCallForward {
     config: Arc<Config>,
 }
@@ -190,7 +192,7 @@ pub async fn run_agi_server(config: Arc<Config>) -> Result<(), Box<dyn std::erro
             config.agi_digest_secret.clone()
         )));
 
-    event!(Level::INFO, "AGI Server started listening on {}", config.agi_bind_string);
+    event!(Level::INFO, "AGI Server listening on {}", agi_listener.local_addr().expect("Should be able to get local addr"));
     serve(agi_listener, router).await?;
     Ok(())
 }
