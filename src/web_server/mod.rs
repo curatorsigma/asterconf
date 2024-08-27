@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use askama::Template;
 use axum::{
-    extract::Path,
     http::StatusCode,
     response::{Html, IntoResponse},
-    routing::{get, post},
+    routing::get,
     Router,
 };
 use tracing::{event, Level};

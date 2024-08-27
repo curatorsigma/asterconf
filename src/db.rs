@@ -2,7 +2,7 @@ use std::error::Error;
 /// Functions for reading and writing into the DB
 use std::fmt::Display;
 
-use sqlx::{postgres::PgRow, PgPool, Row};
+use sqlx::{postgres::PgRow, Row};
 
 use crate::types::{CallForward, Config, Context, Extension, HasId, NoId};
 
@@ -298,9 +298,9 @@ pub async fn update_call_forward<'a>(
 }
 
 mod db_tests {
-    use sqlx::{PgPool, Row};
+    
 
-    use crate::types::{CallForward, Config, Context, Extension, NoId};
+    
 
     #[sqlx::test]
     async fn auth_test(pool: PgPool) -> sqlx::Result<()> {

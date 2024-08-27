@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
-use tracing_subscriber::{filter, fmt::format::FmtSpan, Registry};
+use tracing_subscriber::{filter, fmt::format::FmtSpan};
 use tracing_subscriber::{fmt, prelude::*};
 
 mod agi_server;

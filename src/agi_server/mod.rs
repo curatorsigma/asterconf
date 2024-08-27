@@ -4,12 +4,12 @@ use async_trait::async_trait;
 use blazing_agi::{
     command::AGICommand,
     connection::Connection,
-    handler::{AGIHandler, AndThenHandler},
+    handler::AGIHandler,
     router::Router,
     serve::serve,
     AGIError, AGIRequest,
 };
-use blazing_agi_macros::{create_handler, layer_before};
+use blazing_agi_macros::layer_before;
 use rand::Rng;
 use sha1::{Digest, Sha1};
 use tokio::net::TcpListener;
