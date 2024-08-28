@@ -3,6 +3,7 @@ use std::path::Path;
 use std::{collections::HashMap, fmt::Display};
 
 use axum_server::tls_rustls::RustlsConfig;
+use ldap3::Ldap;
 /// Structs used by the other components
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -172,6 +173,16 @@ struct ConfigFileData {
     agi_bind_addr: String,
     agi_bind_port: String,
     agi_digest_secret: String,
+    ldap: LDAPConfigData,
+}
+
+#[derive(Debug,Deserialize)]
+struct LDAPConfigData {
+  bind_string: String,
+  bind_user: String,
+  bind_password: String,
+  base_dn: String,
+  user_filter: String,
 }
 
 #[derive(Debug, Clone)]
@@ -195,6 +206,7 @@ pub struct Config {
     pub(crate) agi_digest_secret: String,
     /// config for the TLS layer
     pub(crate) rustls_config: RustlsConfig,
+    pub(crate) ldap_config: crate::ldap::LDAPBackend,
 }
 impl Config {
     // this will never be called inside the actual application (only during setup)
@@ -248,7 +260,13 @@ impl Config {
             web_bind_port_tls: config_data.web_bind_port_tls,
             agi_bind_string,
             agi_digest_secret: config_data.agi_digest_secret,
-            rustls_config: RustlsConfig::from_pem_file(config_data.tls_cert_file, config_data.tls_key_file).await.expect("tls file should exist"),
+            rustls_config: RustlsConfig::from_pem_file(
+                config_data.tls_cert_file,
+                config_data.tls_key_file,
+            )
+            .await
+            .expect("tls file should exist"),
+            ldap_config: crate::ldap::LDAPBackend::new(&config_data.ldap.bind_string, &config_data.ldap.bind_user, &config_data.ldap.bind_password, &config_data.ldap.user_filter, &config_data.ldap.base_dn).await?,
         })
     }
 }

@@ -108,7 +108,7 @@ pub async fn new_call_forward<'a>(
     )
     .bind(&new_forward.from.extension)
     .bind(&new_forward.to.extension)
-    .fetch_one(&mut tx)
+    .fetch_one(&mut *tx)
     .await
     .map_err(|_| DBError::CannotInsertCallForward)?;
 
@@ -118,7 +118,7 @@ pub async fn new_call_forward<'a>(
         sqlx::query("INSERT INTO map_call_forward_context (fwd_id, context) VALUES ($1, $2)")
             .bind(new_id)
             .bind(&ctx.asterisk_name)
-            .execute(&mut tx)
+            .execute(&mut *tx)
             .await
             .map_err(|_| DBError::CannotInsertContextMapping(ctx.asterisk_name.clone(), new_id))?;
     }
@@ -189,7 +189,7 @@ pub async fn delete_call_forward<'a>(
         .map_err(|_| DBError::CannotStartTransaction)?;
     sqlx::query("DELETE FROM call_forward WHERE fwd_id = $1")
         .bind(Into::<i32>::into(forward.fwd_id))
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await
         .map_err(|_| DBError::CannotDeleteCallForward)?;
     tx.commit()
@@ -215,7 +215,7 @@ pub async fn update_call_forward<'a>(
     // make sure the call forward actually exists
     let res = sqlx::query("SELECT COUNT(*) AS count FROM call_forward WHERE fwd_id = $1")
         .bind(Into::<i32>::into(&forward.fwd_id))
-        .fetch_one(&mut tx)
+        .fetch_one(&mut *tx)
         .await
         .map_err(|_| DBError::CannotSelectCallForward(Into::<i32>::into(&forward.fwd_id)))?;
     if res.get::<i64, &str>("count") != 1 {
@@ -227,7 +227,7 @@ pub async fn update_call_forward<'a>(
     sqlx::query("UPDATE call_forward SET to_extension = $1 WHERE fwd_id = $2")
         .bind(&forward.to.extension)
         .bind(Into::<i32>::into(&forward.fwd_id))
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await
         .map_err(|_| DBError::CannotUpdateCallForwardDestination)?;
 
@@ -236,7 +236,7 @@ pub async fn update_call_forward<'a>(
         sqlx::query("SELECT context FROM map_call_forward_context WHERE fwd_id = $1")
             .bind(Into::<i32>::into(&forward.fwd_id))
             .map(|row: PgRow| row.get("context"))
-            .fetch_all(&mut tx)
+            .fetch_all(&mut *tx)
             .await
             .map_err(|_| DBError::CannotSelectContexts(Into::<i32>::into(&forward.fwd_id)))?;
 
@@ -253,7 +253,7 @@ pub async fn update_call_forward<'a>(
         sqlx::query("INSERT INTO map_call_forward_context (fwd_id, context) VALUES ($1, $2)")
             .bind(Into::<i32>::into(&forward.fwd_id))
             .bind(&ctx_to_set)
-            .execute(&mut tx)
+            .execute(&mut *tx)
             .await
             .map_err(|_| {
                 DBError::CannotInsertContextMapping(
@@ -280,7 +280,7 @@ pub async fn update_call_forward<'a>(
         sqlx::query("DELETE FROM map_call_forward_context WHERE fwd_id = $1 and context = $2 ")
             .bind(Into::<i32>::into(&forward.fwd_id))
             .bind(ctx_to_delete)
-            .execute(&mut tx)
+            .execute(&mut *tx)
             .await
             .map_err(|_| {
                 DBError::CannotDeleteContextMapping(
@@ -297,10 +297,11 @@ pub async fn update_call_forward<'a>(
     Ok(())
 }
 
+#[cfg(test)]
 mod db_tests {
-    
+    use sqlx::{PgPool, Row};
 
-    
+    use crate::types::{CallForward, Config, Context, Extension, NoId};
 
     #[sqlx::test]
     async fn auth_test(pool: PgPool) -> sqlx::Result<()> {

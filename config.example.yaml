@@ -15,7 +15,7 @@ contexts:
 db_user: "asterconf"
 db_password: "NOT_THE_PASSWORD"
 db_port: 5432
-db_host: "the.host"
+db_host: "postgres.example.com"
 db_database: "asterconf"
 
 tls_cert_file: "TODO"
@@ -27,5 +27,16 @@ web_bind_port_tls: 8443
 
 agi_bind_addr: "127.0.0.1"
 agi_bind_port: 4573
-agi_digest_secret: "top_secret"
+agi_digest_secret: "NOT_THE_SECRET"
+
+# config for LDAP.
+# only LDAPS is supported. It is my strong opinion that non-TLS LDAP should NEVER EVER be used in any circumstance.
+# Connection to Unix sockets is currently not supported either because I did not need it.
+ldap:
+  bind_string: "ldaps://ldaps.example.com:636"
+  bind_user: "uid=asterconf_search,cn=users,dc=example,dc=com"
+  bind_password: "NOT_THE_PASSWORD"
+  base_dn: "dc=example,dc=com"
+  # {username} will be expanded to the username supplied by the user when searching for a user
+  user_filter: "&(memberOf=cn=group,dc=example,dc=com)(uid={username})"
 

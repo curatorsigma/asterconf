@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use tracing::level_filters::LevelFilter;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{filter, fmt::format::FmtSpan};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 mod agi_server;
 mod db;
+pub(crate) mod ldap;
 pub mod types;
 mod web_server;
 
@@ -47,8 +47,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // start the web server
     let config_for_web = config_capsule.clone();
+    let webserver = web_server::Webserver::new().await?;
     let web_handle = tokio::spawn(async move {
-        web_server::run_web_server(config_for_web).await.unwrap();
+        webserver.run_web_server(config_for_web).await.unwrap();
     });
 
     let res = tokio::join!(agi_handle, web_handle);

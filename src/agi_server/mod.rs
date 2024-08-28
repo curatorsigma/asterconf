@@ -2,11 +2,7 @@ use std::{fmt::Display, sync::Arc};
 
 use async_trait::async_trait;
 use blazing_agi::{
-    command::AGICommand,
-    connection::Connection,
-    handler::AGIHandler,
-    router::Router,
-    serve::serve,
+    command::AGICommand, connection::Connection, handler::AGIHandler, router::Router, serve::serve,
     AGIError, AGIRequest,
 };
 use blazing_agi_macros::layer_before;
@@ -23,16 +19,12 @@ use crate::{
 #[derive(Debug, Clone)]
 enum SHA1DigestError {
     DecodeError,
-    WrongDigest,
 }
 impl Display for SHA1DigestError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::DecodeError => {
                 write!(f, "The returned digest was not decodable as u8")
-            }
-            Self::WrongDigest => {
-                write!(f, "The returned digest is false")
             }
         }
     }
@@ -93,13 +85,21 @@ impl AGIHandler for SHA1DigestOverAGI {
                 != *hex::decode(digest_as_str)
                     .map_err(|_| AGIError::InnerError(Box::new(SHA1DigestError::DecodeError)))?
             {
-                event!(Level::WARN, "Expected Digest {}, got {}. Nonce is {}", hex::encode(expected_digest), digest_as_str, nonce);
+                event!(
+                    Level::WARN,
+                    "Expected Digest {}, got {}. Nonce is {}",
+                    hex::encode(expected_digest),
+                    digest_as_str,
+                    nonce
+                );
                 connection
                     .send_command(AGICommand::Verbose(
                         "Unauthenticated: Wrong Digest.".to_string(),
                     ))
                     .await?;
-                Err(AGIError::ClientSideError("The Client supplied the wrong digest data.".to_string()))
+                Err(AGIError::ClientSideError(
+                    "The Client supplied the wrong digest data.".to_string(),
+                ))
             } else {
                 Ok(())
             }
@@ -192,7 +192,13 @@ pub async fn run_agi_server(config: Arc<Config>) -> Result<(), Box<dyn std::erro
             config.agi_digest_secret.clone()
         )));
 
-    event!(Level::INFO, "AGI Server listening on {}", agi_listener.local_addr().expect("Should be able to get local addr"));
+    event!(
+        Level::INFO,
+        "AGI Server listening on {}",
+        agi_listener
+            .local_addr()
+            .expect("Should be able to get local addr")
+    );
     serve(agi_listener, router).await?;
     Ok(())
 }
