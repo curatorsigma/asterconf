@@ -3,7 +3,6 @@ use std::path::Path;
 use std::{collections::HashMap, fmt::Display};
 
 use axum_server::tls_rustls::RustlsConfig;
-use ldap3::Ldap;
 /// Structs used by the other components
 use serde::Deserialize;
 use sqlx::PgPool;

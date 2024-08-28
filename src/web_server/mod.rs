@@ -5,7 +5,6 @@ use axum_login::{
 };
 use sqlx::SqlitePool;
 use time::Duration;
-use tokio::{signal, task::AbortHandle};
 use tower_sessions::cookie::Key;
 use tower_sessions_sqlx_store::SqliteStore;
 

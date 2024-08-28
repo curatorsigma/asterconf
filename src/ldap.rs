@@ -1,7 +1,5 @@
-use std::iter::successors;
-
 use axum_login::{AuthUser, AuthnBackend, UserId};
-use ldap3::{LdapConnAsync, LdapError, Scope, SearchEntry};
+use ldap3::{LdapConnAsync, Scope, SearchEntry};
 use serde::Deserialize;
 
 /// Functions for accessing LDAP
@@ -77,7 +75,8 @@ impl LDAPBackend {
     // rebind as the search user
     pub async fn rebind(&self) -> Result<(), LDAPError> {
         let mut our_handle = self.bound_handle.clone();
-        our_handle.simple_bind(&self.bind_dn, &self.bind_pw)
+        our_handle
+            .simple_bind(&self.bind_dn, &self.bind_pw)
             .await
             .map_err(|_| LDAPError::CannotBind)?
             .success()
