@@ -3,14 +3,11 @@ use axum_login::{
     tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer},
     AuthManagerLayerBuilder,
 };
-use axum_messages::MessagesManagerLayer;
 use sqlx::SqlitePool;
 use time::Duration;
 use tokio::{signal, task::AbortHandle};
 use tower_sessions::cookie::Key;
 use tower_sessions_sqlx_store::SqliteStore;
-
-
 
 use std::{str::FromStr, sync::Arc};
 
@@ -20,13 +17,13 @@ use axum::{
     http::{StatusCode, Uri},
     response::{Html, IntoResponse, Redirect},
     routing::get,
+    Extension, Router,
 };
 use tracing::{event, Level};
 
 use crate::{ldap::LDAPBackend, types::Config};
 pub(crate) mod login;
 mod protected;
-
 
 /// App State that simply holds a user session store
 pub struct Webserver {
@@ -41,7 +38,10 @@ impl Webserver {
     }
 
     /// Run the web server
-    pub async fn run_web_server(&self, config: Arc<Config>) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn run_web_server(
+        &self,
+        config: Arc<Config>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // Session layer.
         //
         // This uses `tower-sessions` to establish a layer that will provide the session
@@ -69,10 +69,10 @@ impl Webserver {
         let auth_backend = Config::create().await?.ldap_config;
         let auth_layer = AuthManagerLayerBuilder::new(auth_backend, session_layer).build();
 
-        let app = protected::create_protected_router()
+        let app = Router::new()
+            .merge(protected::create_protected_router())
             .route_layer(login_required!(LDAPBackend, login_url = "/login"))
             .merge(login::create_login_router())
-            .layer(MessagesManagerLayer)
             .layer(auth_layer)
             .route("/scripts/htmx@1.9.12.js", get(htmx_script))
             .fallback(fallback);
@@ -89,8 +89,7 @@ impl Webserver {
         axum_server::bind_rustls(addr, config.rustls_config.clone())
             .serve(app.into_make_service())
             .await
-            .expect("Should be able to start service")
-            ;
+            .expect("Should be able to start service");
 
         Ok(())
     }
@@ -151,4 +150,3 @@ async fn fallback() -> impl IntoResponse {
         Html(include_str!("templates/404.html")),
     )
 }
-

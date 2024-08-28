@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .compact()
                 .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
                 .with_line_number(true)
-                .with_filter(filter::LevelFilter::DEBUG),
+                .with_filter(filter::LevelFilter::TRACE),
         )
         .with(fmt::Layer::default().with_writer(writer));
     tracing::subscriber::set_global_default(subscriber).unwrap();

@@ -10,20 +10,12 @@
   </head>
 
   <body>
-    <ul>
-      {% for message in messages %}
-      <li>
-        <span><strong>{{ message }}</strong></span>
-      </li>
-      {% endfor %}
-    </ul>
-
     <form method="post">
       <fieldset>
         <legend>User login</legend>
         <p>
           <label for="username">Username</label>
-          <input name="username" id="username" value="ferris" />
+          <input name="username" id="username" value="" />
         </p>
         <p>
           <label for="password">Password</label>
@@ -31,7 +23,7 @@
             name="password"
             id="password"
             type="password"
-            value="hunter42"
+            value=""
           />
         </p>
       </fieldset>

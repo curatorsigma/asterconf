@@ -176,13 +176,13 @@ struct ConfigFileData {
     ldap: LDAPConfigData,
 }
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug, Deserialize)]
 struct LDAPConfigData {
-  bind_string: String,
-  bind_user: String,
-  bind_password: String,
-  base_dn: String,
-  user_filter: String,
+    bind_string: String,
+    bind_user: String,
+    bind_password: String,
+    base_dn: String,
+    user_filter: String,
 }
 
 #[derive(Debug, Clone)]
@@ -266,7 +266,14 @@ impl Config {
             )
             .await
             .expect("tls file should exist"),
-            ldap_config: crate::ldap::LDAPBackend::new(&config_data.ldap.bind_string, &config_data.ldap.bind_user, &config_data.ldap.bind_password, &config_data.ldap.user_filter, &config_data.ldap.base_dn).await?,
+            ldap_config: crate::ldap::LDAPBackend::new(
+                &config_data.ldap.bind_string,
+                &config_data.ldap.bind_user,
+                &config_data.ldap.bind_password,
+                &config_data.ldap.user_filter,
+                &config_data.ldap.base_dn,
+            )
+            .await?,
         })
     }
 }

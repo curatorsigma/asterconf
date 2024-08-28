@@ -308,7 +308,7 @@ mod db_tests {
         let mut conn = pool.acquire().await?;
 
         let foo = sqlx::query("SELECT 1 + 1 AS sum")
-            .fetch_one(&mut conn)
+            .fetch_one(&mut *conn)
             .await?
             .get::<i32, &str>("sum");
         assert_eq!(foo, 2);

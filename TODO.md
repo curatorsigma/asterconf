@@ -1,11 +1,7 @@
-# LDAP
-## Get user, Auth user
-## Test mit unserem prod-activate
-
 # Webserver
-## Auth / Login
-### Templates und GET / POST routen dafür
-### Session store - wie geht das?
+## add good tracing - I do not understand what is happening right now
+## share config as state between handlers
+
 ## GET-routes
 - displaying für die Tabelle
 ## POST-routes

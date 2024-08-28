@@ -9,7 +9,6 @@ use axum::{
     routing::{get, post},
     Form, Router,
 };
-use axum_messages::{Message, Messages};
 use serde::Deserialize;
 
 use crate::ldap::{LDAPBackend, UserCredentials};
@@ -19,17 +18,15 @@ pub type AuthSession = axum_login::AuthSession<LDAPBackend>;
 #[derive(Template)]
 #[template(path = "login.html")]
 pub struct LoginTemplate {
-    messages: Vec<Message>,
     next: Option<String>,
 }
 
 // This allows us to extract the "next" field from the query string. We use this
 // to redirect after log in.
-#[derive(Debug,Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct NextUrl {
     next: Option<String>,
 }
-
 
 pub(crate) fn create_login_router() -> Router<()> {
     Router::new()
@@ -39,57 +36,59 @@ pub(crate) fn create_login_router() -> Router<()> {
 }
 
 mod post {
+    use tracing::{info, warn};
+
     use super::*;
 
+    #[tracing::instrument(skip_all, ret)]
     pub(super) async fn login(
         mut auth_session: super::AuthSession,
-        messages: Messages,
         Form(creds): Form<UserCredentials>,
     ) -> impl IntoResponse {
-        "hi".into_response()
-        // let user = match auth_session.authenticate(creds.clone()).await {
-        //     Ok(Some(user)) => user,
-        //     Ok(None) => {
-        //         messages.error("Invalid credentials");
+        let user = match auth_session.authenticate(creds.clone()).await {
+            Ok(Some(user)) => {
+                info!("New user logged in: {:?}", user);
+                user
+            }
+            Ok(None) => {
+                let mut login_url = "/login".to_string();
+                if let Some(next) = creds.next {
+                    login_url = format!("{}?next={}", login_url, next);
+                };
 
-        //         let mut login_url = "/login".to_string();
-        //         if let Some(next) = creds.next {
-        //             login_url = format!("{}?next={}", login_url, next);
-        //         };
+                warn!("Returning redirect, because the user supplied the wrong password");
+                return Redirect::to(&login_url).into_response();
+            }
+            Err(e) => {
+                warn!("Returning internal server error, because I could not ldap search a user");
+                warn!("{}", e);
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            }
+        };
 
-        //         return Redirect::to(&login_url).into_response();
-        //     }
-        //     Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-        // };
+        if auth_session.login(&user).await.is_err() {
+            warn!("Returning internal server error, because I could not ldap bind a user");
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
 
-        // if auth_session.login(&user).await.is_err() {
-        //     return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        // }
-
-        // messages.success(format!("Successfully logged in as {}", user.username));
-
-        // if let Some(ref next) = creds.next {
-        //     Redirect::to(next)
-        // } else {
-        //     Redirect::to("/")
-        // }
-        // .into_response()
+        if let Some(ref next) = creds.next {
+            Redirect::to(next)
+        } else {
+            Redirect::to("/")
+        }
+        .into_response()
     }
 }
 
 mod get {
     use super::*;
 
-    pub async fn login(
-        messages: Messages,
-        Query( super::NextUrl { next }): Query<NextUrl>,
-    ) -> LoginTemplate {
-        LoginTemplate {
-            messages: messages.into_iter().collect(),
-            next,
-        }
+    #[tracing::instrument(skip_all)]
+    pub async fn login(Query(super::NextUrl { next }): Query<NextUrl>) -> LoginTemplate {
+        LoginTemplate { next }
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn logout(mut auth_session: AuthSession) -> impl IntoResponse {
         match auth_session.logout().await {
             Ok(_) => Redirect::to("/login").into_response(),
@@ -97,4 +96,3 @@ mod get {
         }
     }
 }
-

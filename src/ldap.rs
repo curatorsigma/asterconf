@@ -30,7 +30,7 @@ impl AuthUser for User {
     }
 }
 
-#[derive(Debug,Clone,Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub(crate) struct UserCredentials {
     pub username: String,
     pub password: String,
@@ -43,6 +43,8 @@ pub(crate) struct LDAPBackend {
     bound_handle: ldap3::Ldap,
     pub(crate) user_filter: String,
     pub(crate) base_dn: String,
+    bind_dn: String,
+    bind_pw: String,
 }
 impl LDAPBackend {
     pub async fn new(
@@ -67,7 +69,20 @@ impl LDAPBackend {
             bound_handle: ldap,
             user_filter: user_filter.to_string(),
             base_dn: base_dn.to_string(),
+            bind_dn: bind_dn.to_string(),
+            bind_pw: bind_pw.to_string(),
         })
+    }
+
+    // rebind as the search user
+    pub async fn rebind(&self) -> Result<(), LDAPError> {
+        let mut our_handle = self.bound_handle.clone();
+        our_handle.simple_bind(&self.bind_dn, &self.bind_pw)
+            .await
+            .map_err(|_| LDAPError::CannotBind)?
+            .success()
+            .map_err(|e| LDAPError::UserError(e))?;
+        Ok(())
     }
 }
 
@@ -87,12 +102,17 @@ impl AuthnBackend for LDAPBackend {
         // try to bind as that user
         // get a new handle and re-bind
         let mut rebind_handle = self.bound_handle.clone();
-        rebind_handle.simple_bind(&user.ldap_dn, &creds.password)
+        let res = rebind_handle
+            .simple_bind(&user.ldap_dn, &creds.password)
             // on a connection error, return Err(_)
-            .await.map_err(|_| LDAPError::CannotBind)?
+            .await
+            .map_err(|_| LDAPError::CannotBind)?
             .success()
             // if the password is wrong, return Ok(None), else Ok(Some(the-user))
-            .map_or(Ok(None), |_| Ok(Some(user)))
+            .map_or(Ok(None), |_| Ok(Some(user)))?;
+        // we need to rebind as the search user
+        self.rebind().await?;
+        Ok(res)
     }
 
     async fn get_user(&self, id: &UserId<Self>) -> Result<Option<User>, LDAPError> {
@@ -138,7 +158,9 @@ impl AuthnBackend for LDAPBackend {
             .get("userPassword")
             .ok_or(LDAPError::AttributeMissing("userPassword".to_string()))?;
         let password_hash = if uids.len() != 1 {
-            return Err(LDAPError::NotExactlyOneOfAttribute("userPassword".to_string()));
+            return Err(LDAPError::NotExactlyOneOfAttribute(
+                "userPassword".to_string(),
+            ));
         } else {
             password_hashes
                 .into_iter()
@@ -207,8 +229,8 @@ mod ldap_test {
     use axum_login::AuthnBackend;
     use dotenv::dotenv;
 
-    use crate::types::Config;
     use super::*;
+    use crate::types::Config;
 
     /// Ensure that your config.yaml has the correct credentials for your LDAP databse
     #[tokio::test]
@@ -230,7 +252,10 @@ mod ldap_test {
     #[ignore]
     async fn ldap_get_user_does_not_exist() {
         let backend = Config::create().await.unwrap().ldap_config;
-        let res = backend.get_user(&"DOES NOT EXIST EVEN REMOTELY".to_string()).await.unwrap();
+        let res = backend
+            .get_user(&"DOES NOT EXIST EVEN REMOTELY".to_string())
+            .await
+            .unwrap();
         assert!(res.is_none());
     }
 
@@ -239,7 +264,14 @@ mod ldap_test {
     async fn ldap_authenticate_user() {
         let backend = Config::create().await.unwrap().ldap_config;
         dotenv().ok();
-        let res = backend.authenticate(UserCredentials { username: "testuser".to_string(), password: std::env::var("ASTERCONF_TESTUSER_PASSWORD").unwrap()}).await.unwrap();
+        let res = backend
+            .authenticate(UserCredentials {
+                username: "testuser".to_string(),
+                password: std::env::var("ASTERCONF_TESTUSER_PASSWORD").unwrap(),
+                next: Some("/".to_string()),
+            })
+            .await
+            .unwrap();
         assert!(res.is_some());
     }
 
@@ -247,7 +279,38 @@ mod ldap_test {
     #[ignore]
     async fn ldap_authenticate_user_password_wrong() {
         let backend = Config::create().await.unwrap().ldap_config;
-        let res = backend.authenticate(UserCredentials { username: "testuser".to_string(), password: "THIS IS NOT THE PASSWORD".to_string() }).await.unwrap();
+        let res = backend
+            .authenticate(UserCredentials {
+                username: "testuser".to_string(),
+                password: "THIS IS NOT THE PASSWORD".to_string(),
+                next: Some("/".to_string()),
+            })
+            .await
+            .unwrap();
+        assert!(res.is_none());
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn ldap_auth_user_twice() {
+        let backend = Config::create().await.unwrap().ldap_config;
+        let res = backend
+            .authenticate(UserCredentials {
+                username: "testuser".to_string(),
+                password: "THIS IS NOT THE PASSWORD".to_string(),
+                next: Some("/".to_string()),
+            })
+            .await
+            .unwrap();
+        assert!(res.is_none());
+        let res = backend
+            .authenticate(UserCredentials {
+                username: "testuser".to_string(),
+                password: "THIS IS NOT THE PASSWORD".to_string(),
+                next: Some("/".to_string()),
+            })
+            .await
+            .unwrap();
         assert!(res.is_none());
     }
 }
