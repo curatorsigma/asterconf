@@ -69,11 +69,13 @@ impl Webserver {
         let auth_backend = Config::create().await?.ldap_config;
         let auth_layer = AuthManagerLayerBuilder::new(auth_backend, session_layer).build();
 
+        let our_config = config.clone();
         let app = Router::new()
             .merge(protected::create_protected_router())
             .route_layer(login_required!(LDAPBackend, login_url = "/login"))
             .merge(login::create_login_router())
             .layer(auth_layer)
+            .layer(Extension(our_config))
             .route("/scripts/htmx@1.9.12.js", get(htmx_script))
             .fallback(fallback);
 
