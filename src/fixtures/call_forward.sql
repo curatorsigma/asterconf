@@ -10,6 +10,6 @@ INSERT INTO map_call_forward_context (fwd_id, context) VALUES
 	(1, 'from_internal'),
 	(2, 'from_external'),
 	(2, 'from_internal'),
-	(3, 'from_extension'),
+	(3, 'from_external'),
 	(4, 'from_sales');
 

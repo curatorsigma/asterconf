@@ -5,8 +5,11 @@ use serde::Deserialize;
 /// Functions for accessing LDAP
 #[derive(Clone)]
 pub(crate) struct User {
+    /// the full dn used in LDAP
     ldap_dn: String,
+    /// the uid in LDAP
     pub(crate) username: String,
+    /// The password hash as stored in LDAP
     password_hash: String,
 }
 impl std::fmt::Debug for User {

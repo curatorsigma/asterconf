@@ -1,0 +1,17 @@
+<div class="tr">
+	<span class="td">{{ fwd.from }}</span>
+	<span class="td">{{ fwd.to }}</span>
+{% for ctx in contexts %}
+	<span class="td">
+		{% if fwd.in_contexts.contains(ctx) %}
+		YES
+		{% else %}
+		NO
+		{% endif %}
+	</span>
+{% endfor %}
+<span class="td">
+	<button hx-get="/web/call-forward/{{ fwd.fwd_id }}/edit" hx-target="closest div.tr" hx-swap="outerHTML">Edit</button>
+	<button hx-delete="/web/call-forward/{{ fwd.fwd_id }}" hx-target="closest div.tr" hx-swap="outerHTML">Delete</button>
+</span>
+</div>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+	<title>Landing</title>
+	<script src="/scripts/htmx@2.0.2.js"></script>
+	<script src="/scripts/htmx@2.0.2_response_targets.js"></script>
+	<link rel="stylesheet" href="/style.css">
+
+	<script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+
+</head>
+
+<body hx-ext="response-targets">
+	<div id="top-menu">
+		$whoami: {{ username }}
+		<a href="/logout">Ausloggen</a>
+	</div>
+
+	<div id="error_display" _="on htmx:beforeSend from elsewhere set my innerHTML to ''"></div>
+
+	<div id="forwards">
+
+		<div id="new-forward">
+			<button hx-get="/web/call-forward/new" hx-target="#phantom_row" hx-swap="afterend">+</button>
+		</div>
+
+		<div id="existing-forwards">
+			<div class="table">
+				<div class="tr">
+					<span class="td">From</span>
+					<span class="td">To</span>
+					{% for ctx in contexts %}
+						<span class="td">{{ ctx.display_name }}</span>
+					{% endfor %}
+				</div>
+
+				<div class="tr" id="phantom_row"></div>
+
+				{% for fwd in existing_forwards %}
+					<div class="tr">
+						<span class="td">{{ fwd.from }}</span>
+						<span class="td">{{ fwd.to }}</span>
+					{% for ctx in contexts %}
+						<span class="td">
+							{% if fwd.in_contexts.contains(ctx) %}
+							YES
+							{% else %}
+							NO
+							{% endif %}
+						</span>
+					{% endfor %}
+					<span class="td">
+						<button hx-get="/web/call-forward/{{ fwd.fwd_id }}/edit" hx-target="closest div.tr" hx-swap="outerHTML">Edit</button>
+						<button hx-delete="/web/call-forward/{{ fwd.fwd_id }}" hx-target="closest div.tr" hx-swap="outerHTML">Delete</button>
+					</span>
+					</div>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+</body>
+
+</html>

@@ -168,6 +168,7 @@ dependencies = [
  "askama_axum",
  "async-trait",
  "axum",
+ "axum-extra",
  "axum-login",
  "axum-messages",
  "axum-server",
@@ -301,6 +302,29 @@ dependencies = [
  "pin-project-lite",
  "rustversion",
  "sync_wrapper 0.1.2",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum-extra"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0be6ea09c9b96cb5076af0de2e383bd2bc0c18f827cf1967bdd353e0b910d733"
+dependencies = [
+ "axum",
+ "axum-core",
+ "bytes",
+ "futures-util",
+ "http",
+ "http-body",
+ "http-body-util",
+ "mime",
+ "pin-project-lite",
+ "serde",
+ "serde_html_form",
+ "tower",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -450,6 +474,8 @@ dependencies = [
 [[package]]
 name = "blazing_agi"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b3af43d70c0f8ebc4fc804078278e006d923577810eaad708d83671f0500ba9"
 dependencies = [
  "async-trait",
  "blazing_agi_macros",
@@ -461,6 +487,8 @@ dependencies = [
 [[package]]
 name = "blazing_agi_macros"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "302456dded2d397bbd569a5ea094fefc7aeed29cc8e893164387bae57ec13beb"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2020,6 +2048,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.76",
+]
+
+[[package]]
+name = "serde_html_form"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8de514ef58196f1fc96dcaef80fe6170a1ce6215df9687a93fe8300e773fefc5"
+dependencies = [
+ "form_urlencoded",
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
 ]
 
 [[package]]

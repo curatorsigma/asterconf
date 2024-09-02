@@ -13,7 +13,7 @@ use std::{str::FromStr, sync::Arc};
 use axum::{
     extract::Host,
     handler::HandlerWithoutStateExt,
-    http::{StatusCode, Uri},
+    http::{header, HeaderMap, StatusCode, Uri},
     response::{Html, IntoResponse, Redirect},
     routing::get,
     Extension, Router,
@@ -75,7 +75,12 @@ impl Webserver {
             .merge(login::create_login_router())
             .layer(auth_layer)
             .layer(Extension(our_config))
-            .route("/scripts/htmx@1.9.12.js", get(htmx_script))
+            .route("/scripts/htmx@2.0.2.js", get(htmx_script))
+            .route(
+                "/scripts/htmx@2.0.2_response_targets.js",
+                get(htmx_script_response_targets),
+            )
+            .route("/style.css", get(css_style))
             .fallback(fallback);
 
         // run it
@@ -141,8 +146,40 @@ async fn redirect_http_to_https(config: Arc<Config>) {
         .unwrap();
 }
 
-async fn htmx_script() -> &'static str {
-    include_str!("scripts/htmx@1.9.12.js")
+async fn htmx_script() -> impl IntoResponse {
+    let mut headers = HeaderMap::new();
+    headers.insert(header::SERVER, "axum".parse().expect("static string"));
+    headers.insert(
+        header::CONTENT_TYPE,
+        "text/javascript".parse().expect("static string"),
+    );
+    (
+        headers,
+        include_str!("../../templates/static/htmx@2.0.2.js"),
+    )
+}
+
+async fn htmx_script_response_targets() -> impl IntoResponse {
+    let mut headers = HeaderMap::new();
+    headers.insert(header::SERVER, "axum".parse().expect("static string"));
+    headers.insert(
+        header::CONTENT_TYPE,
+        "text/javascript".parse().expect("static string"),
+    );
+    (
+        headers,
+        include_str!("../../templates/static/htmx@2.0.2_response_targets.js"),
+    )
+}
+
+async fn css_style() -> impl IntoResponse {
+    let mut headers = HeaderMap::new();
+    headers.insert(header::SERVER, "axum".parse().expect("static string"));
+    headers.insert(
+        header::CONTENT_TYPE,
+        "text/css".parse().expect("static string"),
+    );
+    (headers, include_str!("../../templates/static/style.css"))
 }
 
 async fn fallback() -> impl IntoResponse {

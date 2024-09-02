@@ -1,0 +1,43 @@
+{% if let Some(current) = current_forward %}
+<form class="tr" hx-post="/web/call-forward/{{ current.fwd_id }}/edit" hx-target="this" hx-swap="outerHTML" hx-target-error="#error_display">
+	<span class="td">
+		<input name="from" type="text" value="{{ current.from.extension }}">
+	</span>
+	<span class="td">
+		<input name="to" type="text" value="{{ current.to.extension }}">
+	</span>
+	{% for ctx in contexts %}
+		{% if current.in_contexts.contains(ctx) %}
+			<span class="td">
+				<input type="checkbox" name="ctx_checkboxes" value="{{ ctx.asterisk_name }}" checked>
+			</span>
+		{% else %}
+			<span class="td">
+				<input type="checkbox" name="ctx_checkboxes" value="{{ ctx.asterisk_name }}">
+			</span>
+		{% endif %}
+	{% endfor %}
+	<span class="td">
+		<button hx-get="/web/call-forward/{{ current.fwd_id }}" hx-target="closest form.tr" hx-target-error="#error_display">Cancel</button>
+		<button type="submit">Save</button>
+	</span>
+</form>
+{% else %}
+<form class="tr" hx-post="/web/call-forward/new" hx-target="this" hx-swap="outerHTML" hx-target-error="#error_display" _="on click from #cancel-new remove me">
+	<span class="td">
+		<input name="from" type="text" value="">
+	</span>
+	<span class="td">
+		<input name="to" type="text" value="">
+	</span>
+	{% for ctx in contexts %}
+		<span class="td">
+			<input type="checkbox" name="ctx_checkboxes" value="{{ ctx.asterisk_name }}">
+		</span>
+	{% endfor %}
+	<span class="td">
+		<button id="cancel-new">Cancel</button>
+		<button type="submit">Save</button>
+	</span>
+</form>
+{% endif %}

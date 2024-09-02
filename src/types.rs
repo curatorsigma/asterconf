@@ -69,9 +69,19 @@ pub trait IdState {}
 pub(crate) struct NoId {}
 impl IdState for NoId {}
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub(crate) struct HasId {
     id: i32,
+}
+impl HasId {
+    pub fn new(x: i32) -> Self {
+        HasId { id: x }
+    }
+}
+impl std::fmt::Display for HasId {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.id)
+    }
 }
 impl From<HasId> for i32 {
     fn from(value: HasId) -> Self {
@@ -155,7 +165,7 @@ impl<'a> CallForward<'a, NoId> {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct ConfigFileData {
     extensions: Vec<Extension>,
     contexts: Vec<Context>,
@@ -174,14 +184,47 @@ struct ConfigFileData {
     agi_digest_secret: String,
     ldap: LDAPConfigData,
 }
+impl std::fmt::Debug for ConfigFileData {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("ConfigFileData")
+            .field("extensions", &self.extensions)
+            .field("contexts", &self.contexts)
+            .field("db_user", &self.db_user)
+            .field("db_password", &"[redacted]")
+            .field("db_port", &self.db_port)
+            .field("db_host", &self.db_host)
+            .field("db_database", &self.db_database)
+            .field("tls_cert_file", &self.tls_cert_file)
+            .field("tls_key_file", &self.tls_key_file)
+            .field("web_bind_addr", &self.web_bind_addr)
+            .field("web_bind_port", &self.web_bind_port)
+            .field("web_bind_port_tls", &self.web_bind_port_tls)
+            .field("agi_bind_addr", &self.agi_bind_addr)
+            .field("agi_bind_port", &self.agi_bind_port)
+            .field("agi_digest_secret", &self.agi_digest_secret)
+            .field("ldap", &self.ldap)
+            .finish()
+    }
+}
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct LDAPConfigData {
     bind_string: String,
     bind_user: String,
     bind_password: String,
     base_dn: String,
     user_filter: String,
+}
+impl std::fmt::Debug for LDAPConfigData {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("LDAPConfigData")
+            .field("bind_string", &self.bind_string)
+            .field("bind_user", &self.bind_user)
+            .field("bind_password", &"[redacted]")
+            .field("base_dn", &self.base_dn)
+            .field("user_filter", &self.user_filter)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone)]

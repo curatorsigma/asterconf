@@ -2,7 +2,11 @@ use std::{fmt::Display, sync::Arc};
 
 use async_trait::async_trait;
 use blazing_agi::{
-    command::AGICommand, connection::Connection, handler::AGIHandler, router::Router, serve::serve,
+    command::{AGIResponse, GetFullVariable, SetVariable, Verbose},
+    connection::Connection,
+    handler::AGIHandler,
+    router::Router,
+    serve::serve,
     AGIError, AGIRequest,
 };
 use blazing_agi_macros::layer_before;
@@ -71,40 +75,46 @@ impl AGIHandler for SHA1DigestOverAGI {
         hasher.update(&nonce.as_bytes());
         let expected_digest: [u8; 20] = hasher.finalize().into();
         let digest_response = connection
-            .send_command(AGICommand::GetFullVariable(
-                format!("${{SHA1(${{BLAZING_AGI_DIGEST_SECRET}}:{})}}", nonce),
-                None,
-            ))
+            .send_command(GetFullVariable::new(format!(
+                "${{SHA1(${{BLAZING_AGI_DIGEST_SECRET}}:{})}}",
+                nonce
+            )))
             .await?;
-        if digest_response.code != 200 {
-            return Err(AGIError::Not200(digest_response.code));
-        };
-        if let Some(x) = digest_response.operational_data {
-            let digest_as_str = x.trim_matches(|c| c == '(' || c == ')');
-            if expected_digest
-                != *hex::decode(digest_as_str)
-                    .map_err(|_| AGIError::InnerError(Box::new(SHA1DigestError::DecodeError)))?
-            {
-                event!(
-                    Level::WARN,
-                    "Expected Digest {}, got {}. Nonce is {}",
-                    hex::encode(expected_digest),
-                    digest_as_str,
-                    nonce
-                );
-                connection
-                    .send_command(AGICommand::Verbose(
-                        "Unauthenticated: Wrong Digest.".to_string(),
+        match digest_response {
+            AGIResponse::Ok(inner_response) => {
+                if let Some(digest_as_str) = inner_response.value {
+                    if expected_digest
+                        != *hex::decode(&digest_as_str).map_err(|_| {
+                            AGIError::InnerError(Box::new(SHA1DigestError::DecodeError))
+                        })?
+                    {
+                        event!(
+                            Level::WARN,
+                            "Expected Digest {}, got {}. Nonce is {}",
+                            hex::encode(expected_digest),
+                            digest_as_str,
+                            nonce
+                        );
+                        connection
+                            .send_command(Verbose::new(
+                                "Unauthenticated: Wrong Digest.".to_string(),
+                            ))
+                            .await?;
+                        Err(AGIError::ClientSideError(
+                            "The Client supplied the wrong digest data.".to_string(),
+                        ))
+                    } else {
+                        Ok(())
+                    }
+                } else {
+                    Err(AGIError::ClientSideError(
+                        "The client did not actually send operational data".to_string(),
                     ))
-                    .await?;
-                Err(AGIError::ClientSideError(
-                    "The Client supplied the wrong digest data.".to_string(),
-                ))
-            } else {
-                Ok(())
+                }
             }
-        } else {
-            Err(AGIError::NoOperationalData(digest_response))
+            m => {
+                return Err(AGIError::Not200(m.into()));
+            }
         }
     }
 }
@@ -158,7 +168,7 @@ impl AGIHandler for HandleCallForward {
                     fwd.to.extension
                 );
                 connection
-                    .send_command(AGICommand::SetVariable(
+                    .send_command(SetVariable::new(
                         "CALL_FORWARDED_TO".to_string(),
                         fwd.to.extension.to_string(),
                     ))
@@ -175,7 +185,7 @@ impl AGIHandler for HandleCallForward {
             "Call to {initial_dest} did not need forwarding."
         );
         connection
-            .send_command(AGICommand::SetVariable(
+            .send_command(SetVariable::new(
                 "CALL_FORWARDED_TO".to_string(),
                 initial_dest.to_string(),
             ))

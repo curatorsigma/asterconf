@@ -128,22 +128,10 @@ pub async fn new_call_forward<'a>(
     Ok(new_forward.set_id(new_id))
 }
 
-/// Get all call forwards that start at `startpoint`
-pub async fn get_call_forwards_from_startpoint<'a>(
+fn convert_to_call_forwards<'a>(
     config: &'a Config,
-    startpoint: &Extension,
-) -> Result<Vec<CallForward<'a, HasId>>, DBError> {
-    let call_forwards = sqlx::query(
-        "SELECT call_forward.fwd_id, call_forward.from_extension, call_forward.to_extension, map_call_forward_context.context
-            FROM call_forward
-         INNER JOIN map_call_forward_context
-            ON map_call_forward_context.fwd_id = call_forward.fwd_id
-         WHERE from_extension = $1"
-    )
-        .bind(startpoint.extension.clone())
-        .fetch_all(&config.pool)
-        .await
-        .map_err(|_| DBError::CannotSelectCallForwards)?;
+    call_forwards: Vec<PgRow>,
+) -> Result<Vec<CallForward<HasId>>, DBError> {
     let mut result: Vec<CallForward<HasId>> = vec![];
     'row: for row in call_forwards {
         let fwd_id: i32 = row.get("fwd_id");
@@ -151,7 +139,7 @@ pub async fn get_call_forwards_from_startpoint<'a>(
         let to_extension: String = row.get("to_extension");
         let context: String = row.get("context");
         for fwd in result.iter_mut() {
-            if fwd.to.extension == to_extension {
+            if fwd.to.extension == to_extension && fwd.from.extension == from_extension {
                 let context_as_object = Context::create_from_name(&config, &context);
                 match context_as_object {
                     None => {
@@ -177,18 +165,78 @@ pub async fn get_call_forwards_from_startpoint<'a>(
     Ok(result)
 }
 
-/// Remove a given call forward
-pub async fn delete_call_forward<'a>(
+/// Get all call forwards that start at `startpoint`
+pub async fn get_all_call_forwards<'a>(
     config: &'a Config,
-    forward: CallForward<'a, HasId>,
-) -> Result<(), DBError> {
+) -> Result<Vec<CallForward<'a, HasId>>, DBError> {
+    let call_forwards = sqlx::query(
+        "SELECT call_forward.fwd_id, call_forward.from_extension, call_forward.to_extension, map_call_forward_context.context
+            FROM call_forward
+         INNER JOIN map_call_forward_context
+            ON map_call_forward_context.fwd_id = call_forward.fwd_id"
+    )
+        .fetch_all(&config.pool)
+        .await
+        .map_err(|_| DBError::CannotSelectCallForwards)?;
+    Ok(convert_to_call_forwards(config, call_forwards)?)
+}
+
+/// Get all call forwards that start at `startpoint`
+pub async fn get_call_forwards_from_startpoint<'a>(
+    config: &'a Config,
+    startpoint: &Extension,
+) -> Result<Vec<CallForward<'a, HasId>>, DBError> {
+    let call_forwards = sqlx::query(
+        "SELECT call_forward.fwd_id, call_forward.from_extension, call_forward.to_extension, map_call_forward_context.context
+            FROM call_forward
+         INNER JOIN map_call_forward_context
+            ON map_call_forward_context.fwd_id = call_forward.fwd_id
+         WHERE from_extension = $1"
+    )
+        .bind(startpoint.extension.clone())
+        .fetch_all(&config.pool)
+        .await
+        .map_err(|_| DBError::CannotSelectCallForwards)?;
+    Ok(convert_to_call_forwards(config, call_forwards)?)
+}
+
+/// Get call forward with a specific id
+pub async fn get_call_forward_by_id<'a>(
+    config: &'a Config,
+    fwdid: i32,
+) -> Result<CallForward<'a, HasId>, DBError> {
+    let call_forwards = sqlx::query(
+        "SELECT call_forward.fwd_id, call_forward.from_extension, call_forward.to_extension, map_call_forward_context.context
+            FROM call_forward
+         INNER JOIN map_call_forward_context
+            ON map_call_forward_context.fwd_id = call_forward.fwd_id
+        WHERE
+            call_forward.fwd_id = $1"
+    )
+        .bind(fwdid)
+        .fetch_all(&config.pool)
+        .await
+        .map_err(|_| DBError::CannotSelectCallForwards)?;
+    let forwards = convert_to_call_forwards(config, call_forwards)?;
+    if forwards.len() == 1 {
+        Ok(forwards
+            .into_iter()
+            .next()
+            .expect("Length was just checked"))
+    } else {
+        Err(DBError::CannotSelectCallForward(fwdid))
+    }
+}
+
+/// Remove a given call forward
+pub async fn delete_call_forward_by_id<'a>(config: &'a Config, fwd_id: i32) -> Result<(), DBError> {
     let mut tx = config
         .pool
         .begin()
         .await
         .map_err(|_| DBError::CannotStartTransaction)?;
     sqlx::query("DELETE FROM call_forward WHERE fwd_id = $1")
-        .bind(Into::<i32>::into(forward.fwd_id))
+        .bind(fwd_id)
         .execute(&mut *tx)
         .await
         .map_err(|_| DBError::CannotDeleteCallForward)?;
@@ -200,7 +248,7 @@ pub async fn delete_call_forward<'a>(
 
 pub async fn update_call_forward<'a>(
     config: &'a Config,
-    forward: CallForward<'a, HasId>,
+    forward: &CallForward<'a, HasId>,
 ) -> Result<(), DBError> {
     // update the contexts
     //  get the contexts currently in the DB
@@ -224,6 +272,15 @@ pub async fn update_call_forward<'a>(
         )));
     }
 
+    // Update the source
+    sqlx::query("UPDATE call_forward SET from_extension = $1 WHERE fwd_id = $2")
+        .bind(&forward.from.extension)
+        .bind(Into::<i32>::into(&forward.fwd_id))
+        .execute(&mut *tx)
+        .await
+        .map_err(|_| DBError::CannotUpdateCallForwardDestination)?;
+
+    // Update the target
     sqlx::query("UPDATE call_forward SET to_extension = $1 WHERE fwd_id = $2")
         .bind(&forward.to.extension)
         .bind(Into::<i32>::into(&forward.fwd_id))
@@ -316,7 +373,9 @@ mod db_tests {
     }
 
     #[sqlx::test(fixtures("call_forward"))]
-    async fn get_call_forwards(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    async fn get_call_forwards_from_startpoint(
+        pool: PgPool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut config = Config::create().await?;
         config.pool = pool;
 
@@ -324,6 +383,29 @@ mod db_tests {
         let res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
         assert_eq!(res.len(), 2);
         assert_eq!(res[0].in_contexts.len(), 2);
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("call_forward"))]
+    async fn get_all_call_forwards(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+        let mut config = Config::create().await?;
+        config.pool = pool;
+
+        let res = super::get_all_call_forwards(&config).await?;
+        assert_eq!(res.len(), 4);
+        assert_eq!(res[0].in_contexts.len(), 2);
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("call_forward"))]
+    async fn get_call_forward_by_id(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+        let mut config = Config::create().await?;
+        config.pool = pool;
+
+        let res = super::get_call_forward_by_id(&config, 2).await?;
+        assert_eq!(res.in_contexts.len(), 2);
+        let res = super::get_call_forward_by_id(&config, 5).await;
+        assert_eq!(res, Err(super::DBError::CannotSelectCallForward(5)));
         Ok(())
     }
 
@@ -375,7 +457,7 @@ mod db_tests {
         let mut res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
         let first_len = res.len();
         let to_delete = res.pop().unwrap();
-        super::delete_call_forward(&config, to_delete).await?;
+        super::delete_call_forward_by_id(&config, to_delete.fwd_id.into()).await?;
         let res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
         assert_eq!(first_len - 1, res.len());
         Ok(())
@@ -392,9 +474,27 @@ mod db_tests {
         let mut res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
         let mut fwd = res.pop().unwrap();
         fwd.to = startpoint.clone();
-        super::update_call_forward(&config, fwd).await?;
+        super::update_call_forward(&config, &fwd).await?;
         let res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
         assert_eq!(res.last().unwrap().to.extension, "702".to_string());
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("call_forward"))]
+    async fn update_call_forward_change_source(
+        pool: PgPool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut config = Config::create().await?;
+        config.pool = pool;
+
+        let startpoint = Extension::create_from_name(&config, "704".to_string());
+        let mut res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
+        let mut fwd = res.pop().unwrap();
+        fwd.from = startpoint.clone();
+        super::update_call_forward(&config, &fwd).await?;
+        let res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
+        assert_eq!(res.last().unwrap().from.extension, "704".to_string());
 
         Ok(())
     }
@@ -414,7 +514,7 @@ mod db_tests {
 
         assert!(!fwd.in_contexts.contains(&from_sales));
         fwd.in_contexts.push(from_sales);
-        super::update_call_forward(&config, fwd).await?;
+        super::update_call_forward(&config, &fwd).await?;
         let res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
         assert!(res.last().unwrap().in_contexts.contains(&from_sales));
 
@@ -436,7 +536,7 @@ mod db_tests {
 
         // the last thing inserted is the from_internal forwarding
         fwd.in_contexts.pop();
-        super::update_call_forward(&config, fwd).await?;
+        super::update_call_forward(&config, &fwd).await?;
         let res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
         assert!(!res.last().unwrap().in_contexts.contains(&from_internal));
 
