@@ -1,5 +1,6 @@
 {% for res in results %}
-<div class="single_search_result" _="on click set { value: '{{ res.1 }}' } on the previous .{{ target }}-extension-input-field then set { innerHTML: ''} on the closest .{{ target }}-search-result"> 
+<div class="single_search_result"
+		_="on click set { value: '{{ res.1 }}' } on the previous .{{ target }}-extension-input-field then send endsearch to the closest .{{ target }}-search-result"> 
 	<p> {{ res.0|safe }} </p>
 </div>
 {% endfor %}

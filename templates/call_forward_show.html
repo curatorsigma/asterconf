@@ -1,17 +1,17 @@
-<div class="tr">
-	<span class="td">{{ fwd.from }}</span>
-	<span class="td">{{ fwd.to }}</span>
-{% for ctx in contexts %}
-	<span class="td">
-		{% if fwd.in_contexts.contains(ctx) %}
-		YES
-		{% else %}
-		NO
-		{% endif %}
-	</span>
-{% endfor %}
-<span class="td">
-	<button hx-get="/web/call-forward/{{ fwd.fwd_id }}/edit" hx-target="closest div.tr" hx-swap="outerHTML">Edit</button>
-	<button hx-delete="/web/call-forward/{{ fwd.fwd_id }}" hx-target="closest div.tr" hx-swap="outerHTML">Delete</button>
-</span>
+<div class="tr flex justify-evenly w-full p-2 border-zinc-400 border-2">
+	<div class="td w-32 text-neutral-200 font-mono border-2 flex justify-center">{{ fwd.from }}</div>
+	<div class="td w-32 text-neutral-200 font-mono border-2 flex justify-center">{{ fwd.to }}</div>
+	{% for ctx in contexts %}
+		<div class="w-20 flex justify-center">
+			{% if fwd.in_contexts.contains(ctx) %}
+			<div class="w-7 h-7 border-zinc-400 bg-sky-400"></div>
+			{% else %}
+			<div class="w-7 h-7"></div>
+			{% endif %}
+		</div>
+	{% endfor %}
+	<div class="td w-32 flex justify-center">
+	<button hx-get="/web/call-forward/{{ fwd.fwd_id }}/edit" hx-target="closest div.tr" hx-swap="outerHTML" class="w-16 bg-neutral-800 hover:bg-neutral-500 focus:bg-neutral-500 hover:rounded-full">Edit</button>
+	<button hx-delete="/web/call-forward/{{ fwd.fwd_id }}" hx-target="closest div.tr" hx-swap="outerHTML" class="w-16 bg-red-600/70 hover:bg-red-600/90 focus:bg-red-600/90 hover:rounded-full">Delete</button>
+	</div>
 </div>

@@ -5,4 +5,5 @@
 - top bar schön machen
 - icons statt knöpfen
 - indikatoren statt YES/NO
+- schönes hover für alles was ein link ist
 

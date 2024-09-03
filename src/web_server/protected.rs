@@ -10,7 +10,9 @@ use axum::{
 use crate::types::{CallForward, Config, Context, HasId};
 
 fn error_display(s: &str) -> String {
-    format!("<div id=\"error_display\" _=\"on htmx:beforeSend from elsewhere set my innerHTML to ''\">{}</div>", s)
+    // we cannot control hx-swap separately for hx-target and hx-target-error
+    // so we swap outer-html and add the surrounding div all the time
+    format!("<div class=\"text-red-500 flex justify-center\" id=\"error_display\" _=\"on htmx:beforeSend from elsewhere set my innerHTML to ''\">{}</div>", s)
 }
 
 pub(crate) fn create_protected_router() -> Router {

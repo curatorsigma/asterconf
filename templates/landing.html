@@ -11,49 +11,50 @@
 
 </head>
 
-<body hx-ext="response-targets">
-	<div id="top-menu">
-		$whoami: {{ username }}
+<body hx-ext="response-targets" class="min-h-screen bg-neutral-800 text-sky-500 font-mono">
+	<div id="top-menu" class="flex justify-between">
+		<div> $whoami: {{ username }} </div>
 		<a href="/logout">Ausloggen</a>
 	</div>
 
-	<div id="error_display" _="on htmx:beforeSend from elsewhere set my innerHTML to ''"></div>
+	<div class="text-xl text-red-500" id="error_display" _="on htmx:beforeSend from elsewhere set my innerHTML to ''"></div>
 
-	<div id="forwards">
+	<div id="flex justify-center text-inherit">
 
 		<div id="new-forward">
-			<button hx-get="/web/call-forward/new" hx-target="#phantom_row" hx-swap="afterend">+</button>
+			<button class="text-3xl text-green-600" hx-get="/web/call-forward/new" hx-target="#phantom_row" hx-swap="afterend">+</button>
 		</div>
 
-		<div id="existing-forwards">
-			<div class="table">
-				<div class="tr">
-					<span class="td">From</span>
-					<span class="td">To</span>
+		<div id="existing-forwards" class="flex justify-center bg-neutral-700 text-sky-300">
+			<div class="flex flex-col justify-evenly w-4/5">
+				<div class="tr flex justify-evenly w-full p-2 border-zinc-400 border-2">
+					<div class="td w-32 flex justify-center">From</div>
+					<div class="td w-32 flex justify-center">To</div>
 					{% for ctx in contexts %}
-						<span class="td">{{ ctx.display_name }}</span>
+						<div class="td w-20 flex justify-center">{{ ctx.display_name }}</div>
 					{% endfor %}
+					<div class="w-32"></div>
 				</div>
 
 				<div class="tr" id="phantom_row"></div>
 
 				{% for fwd in existing_forwards %}
-					<div class="tr">
-						<span class="td">{{ fwd.from }}</span>
-						<span class="td">{{ fwd.to }}</span>
-					{% for ctx in contexts %}
-						<span class="td">
-							{% if fwd.in_contexts.contains(ctx) %}
-							YES
-							{% else %}
-							NO
-							{% endif %}
-						</span>
-					{% endfor %}
-					<span class="td">
-						<button hx-get="/web/call-forward/{{ fwd.fwd_id }}/edit" hx-target="closest div.tr" hx-swap="outerHTML">Edit</button>
-						<button hx-delete="/web/call-forward/{{ fwd.fwd_id }}" hx-target="closest div.tr" hx-swap="outerHTML">Delete</button>
-					</span>
+					<div class="tr flex justify-evenly w-full p-2 border-zinc-400 border-2">
+						<div class="td w-32 text-neutral-200 font-mono border-2 flex justify-center">{{ fwd.from }}</div>
+						<div class="td w-32 text-neutral-200 font-mono border-2 flex justify-center">{{ fwd.to }}</div>
+						{% for ctx in contexts %}
+							<div class="w-20 flex justify-center">
+								{% if fwd.in_contexts.contains(ctx) %}
+								<div class="w-7 h-7 border-zinc-400 bg-sky-400"></div>
+								{% else %}
+								<div class="w-7 h-7"></div>
+								{% endif %}
+							</div>
+						{% endfor %}
+						<div class="td w-32 flex justify-center">
+						<button hx-get="/web/call-forward/{{ fwd.fwd_id }}/edit" hx-target="closest div.tr" hx-swap="outerHTML" class="w-16 bg-neutral-800 hover:bg-neutral-500 focus:bg-neutral-500 hover:rounded-full">Edit</button>
+						<button hx-delete="/web/call-forward/{{ fwd.fwd_id }}" hx-target="closest div.tr" hx-swap="outerHTML" class="w-16 bg-red-600/70 hover:bg-red-600/90 focus:bg-red-600/90 hover:rounded-full">Delete</button>
+						</div>
 					</div>
 				{% endfor %}
 			</div>
