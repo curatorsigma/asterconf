@@ -76,11 +76,13 @@ pub(super) mod get {
         let call_forward_res = get_all_call_forwards(&config).await;
         match call_forward_res {
             Ok(forwards) => {
-                event!(Level::INFO, "{forwards:?}");
+                let mut contexts = config.contexts.values().collect::<Vec<_>>();
+                contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
+
                 LandingTemplate {
                     username: user.username,
                     existing_forwards: forwards,
-                    contexts: config.contexts.values().collect::<Vec<_>>(),
+                    contexts,
                 }
                 .into_response()
             }
@@ -95,9 +97,13 @@ pub(super) mod get {
     ) -> impl IntoResponse {
         let fwd_res = get_call_forward_by_id(&config, fwdid).await;
         match fwd_res {
-            Ok(fwd) => SingleCallForwardShowTemplate {
-                fwd,
-                contexts: config.contexts.values().collect::<Vec<_>>(),
+            Ok(fwd) => {
+                let mut contexts = config.contexts.values().collect::<Vec<_>>();
+                contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
+                SingleCallForwardShowTemplate {
+                    fwd,
+                    contexts,
+                }
             }
             .into_response(),
             Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
@@ -119,9 +125,13 @@ pub(super) mod get {
         // Get call forward by id
         let fwd_res = get_call_forward_by_id(&config, fwdid).await;
         match fwd_res {
-            Ok(current_forward) => SingleCallForwardEditTemplate {
-                current_forward: Some(current_forward),
-                contexts: config.contexts.values().collect::<Vec<_>>(),
+            Ok(current_forward) => {
+                let mut contexts = config.contexts.values().collect::<Vec<_>>();
+                contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
+                SingleCallForwardEditTemplate {
+                    current_forward: Some(current_forward),
+                    contexts,
+                }
             }
             .into_response(),
             Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
@@ -133,9 +143,11 @@ pub(super) mod get {
         Extension(config): Extension<Arc<Config>>,
     ) -> impl IntoResponse {
         // Get call forward by id
+        let mut contexts = config.contexts.values().collect::<Vec<_>>();
+        contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
         SingleCallForwardEditTemplate {
             current_forward: None,
-            contexts: config.contexts.values().collect::<Vec<_>>(),
+            contexts,
         }
         .into_response()
     }
@@ -206,11 +218,14 @@ pub(super) mod post {
         let res = new_call_forward(&config, forward).await;
 
         match res {
-            Ok(x) => SingleCallForwardShowTemplate {
-                fwd: x,
-                contexts: config.contexts.values().collect::<Vec<_>>(),
+            Ok(x) => {
+                let mut contexts = config.contexts.values().collect::<Vec<_>>();
+                contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
+                SingleCallForwardShowTemplate {
+                    fwd: x,
+                    contexts,
+                }.into_response()
             }
-            .into_response(),
             Err(DBError::OverlappingCallForwards(x, y)) => (
                 StatusCode::BAD_REQUEST,
                 error_display(&format!(
@@ -266,11 +281,14 @@ pub(super) mod post {
         let update_res = update_call_forward(&config, &forward).await;
 
         match update_res {
-            Ok(()) => SingleCallForwardShowTemplate {
-                fwd: forward,
-                contexts: config.contexts.values().collect::<Vec<_>>(),
+            Ok(()) => {
+                let mut contexts = config.contexts.values().collect::<Vec<_>>();
+                contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
+                SingleCallForwardShowTemplate {
+                    fwd: forward,
+                    contexts,
+                }.into_response()
             }
-            .into_response(),
             Err(DBError::CannotSelectCallForward(fwdid)) => (
                 StatusCode::BAD_REQUEST,
                 error_display("Call Forward no longer exists. Please reload and try again."),
