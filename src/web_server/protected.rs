@@ -29,8 +29,12 @@ pub(crate) fn create_protected_router() -> Router {
             get(self::get::single_call_forward_new).post(self::post::single_call_forward_new),
         )
         .route(
-            "/web/search-extension",
-            post(self::post::search_extension)
+            "/web/search-extension/from",
+            post(self::post::from_search_extension)
+        )
+        .route(
+            "/web/search-extension/to",
+            post(self::post::to_search_extension)
         )
 }
 
@@ -308,8 +312,12 @@ pub(super) mod post {
     }
 
     #[derive(Deserialize)]
-    pub(super) struct ExtensionSearchForm {
+    pub(super) struct FromExtensionSearchForm {
         from: String,
+    }
+    #[derive(Deserialize)]
+    pub(super) struct ToExtensionSearchForm {
+        to: String,
     }
 
     /// Find the characters of `search` in `term`, in order
@@ -378,12 +386,13 @@ pub(super) mod post {
     #[template(path="search_results.html")]
     pub(super) struct SearchResultTemplate {
         results: Vec<(String, String)>,
+        target: String,
     }
 
     #[tracing::instrument(skip_all)]
-    pub(super) async fn search_extension(
+    pub(super) async fn from_search_extension(
         Extension(config): Extension<Arc<Config>>,
-        axum_extra::extract::Form(search_form): axum_extra::extract::Form<ExtensionSearchForm>,
+        axum_extra::extract::Form(search_form): axum_extra::extract::Form<FromExtensionSearchForm>,
     ) -> impl IntoResponse {
         let relevant_extensions = config.extensions.iter()
             .filter_map(|(ext_name, extension)| {
@@ -396,6 +405,27 @@ pub(super) mod post {
             .collect::<Vec<_>>();
         SearchResultTemplate {
             results: relevant_extensions,
+            target: "from".to_owned(),
+        }
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub(super) async fn to_search_extension(
+        Extension(config): Extension<Arc<Config>>,
+        axum_extra::extract::Form(search_form): axum_extra::extract::Form<ToExtensionSearchForm>,
+    ) -> impl IntoResponse {
+        let relevant_extensions = config.extensions.iter()
+            .filter_map(|(ext_name, extension)| {
+                let ext_hr_string = extension.to_string();
+                let fuzzy_match = string_fuzzy_match(&search_form.to, &ext_hr_string);
+                if let Some(y) = fuzzy_match {
+                    Some((mark_string_at_positions(&ext_hr_string, y)?, ext_name.to_owned()))
+                } else { None }
+            })
+            .collect::<Vec<_>>();
+        SearchResultTemplate {
+            results: relevant_extensions,
+            target: "to".to_owned(),
         }
     }
 

@@ -2,13 +2,17 @@
 <form class="tr" hx-post="/web/call-forward/{{ current.fwd_id }}/edit" hx-target="this" hx-swap="outerHTML" hx-target-error="#error_display">
 	<span class="td">
 		<input class="from-extension-input-field" name="from" type="search" value="{{ current.from.extension }}"
-			hx-post="/web/search-extension"
+			hx-post="/web/search-extension/from"
 			hx-trigger="input changed delay:500ms, search"
-			hx-target="next div.tr"
-			hx-swap="outerHTML">
+			hx-target="next .from-search-result"
+			hx-swap="innerHTML">
 	</span>
 	<span class="td">
-		<input name="to" type="text" value="{{ current.to.extension }}">
+		<input class="to-extension-input-field" name="to" type="search" value="{{ current.to.extension }}"
+			hx-post="/web/search-extension/to"
+			hx-trigger="input changed delay:500ms, search"
+			hx-target="next .to-search-result"
+			hx-swap="innerHTML">
 	</span>
 	{% for ctx in contexts %}
 		{% if current.in_contexts.contains(ctx) %}
@@ -26,7 +30,12 @@
 		<button id="submit" type="submit" _="on click send endsearch to the next .search-result">Save</button>
 	</span>
 </form>
-<div class="tr search-result" _="on endsearch remove me"></div>
+
+<div class="tr search-result" _="on endsearch remove me">
+	<span class="td from-search-result" _="on endsearch set my innerHTML to ''"></span>
+	<span class="td to-search-result" _="on endsearch set my innerHTML to ''"></span>
+</div>
+
 {% else %}
 <form class="tr new-forward" hx-post="/web/call-forward/new" hx-target="this" hx-swap="outerHTML" hx-target-error="#error_display" _="on cancelnew remove me">
 	<span class="td">
