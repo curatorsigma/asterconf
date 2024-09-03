@@ -2,39 +2,31 @@
 <html lang="en">
   <head>
     <title>Login</title>
-    <style>
-      label {
-        display: block;
-        margin-bottom: 5px;
-      }
-    </style>
+		<link rel="stylesheet" href="/style.css">
   </head>
 
   <body>
-    <form method="post">
-      <fieldset>
-        <legend>User login</legend>
-        <p>
-          <label for="username">Username</label>
-          <input name="username" id="username" value="" />
-        </p>
-        <p>
-          <label for="password">Password</label>
-          <input
-            name="password"
-            id="password"
-            type="password"
-            value=""
-          />
-        </p>
-      </fieldset>
+		<div class="min-h-screen bg-neutral-700 flex justify-center text-sky-300">
+				<form method="post" class="grid grid-cols-1 grid-rows-3 h-64 gap-12 bg-neutral-800 p-12 translate-y-1/3">
+						<legend class="flex justify-center">asterconf - callforwards</legend>
+						<div class="flex flex-col">
+							<label for="username" class="flex justify-center">Username</label>
+							<input class="text-neutral-800 font-mono" name="username" id="username" value="" />
+						</div>
+						<div class="flex flex-col">
+							<label for="password" class="flex justify-center">Password</label>
+							<input
+								class="text-neutral-800 font-mono"
+								name="password"
+								id="password"
+								type="password"
+								value=""
+							/>
+						</div>
 
-      <input type="submit" value="login" />
-
-      {% if let Some(next) = next %}
-      <input type="hidden" name="next" value="{{next}}" />
-      {% endif %}
-    </form>
+						<button class="bg-sky-900 mt-3 rounded-l hover:rounded-full hover:bg-sky-700 focus:bg-sky-700 focus:rounded-full" type="submit" value="login">Login</button>
+				</form>
+		</div>
   </body>
 </html>
 
