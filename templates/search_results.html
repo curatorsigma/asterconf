@@ -1,0 +1,7 @@
+<div class="tr search-result" _="on endsearch remove me">
+	<span class="td">
+		{% for res in results %}
+		<p _="on click set { value: '{{ res.1 }}' } on the previous .from-extension-input-field then set { innerHTML: ''} on the closest .search-result"> {{ res.0|safe }} </p>
+		{% endfor %}
+	</span>
+</div>

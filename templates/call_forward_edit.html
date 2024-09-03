@@ -1,7 +1,11 @@
 {% if let Some(current) = current_forward %}
 <form class="tr" hx-post="/web/call-forward/{{ current.fwd_id }}/edit" hx-target="this" hx-swap="outerHTML" hx-target-error="#error_display">
 	<span class="td">
-		<input name="from" type="text" value="{{ current.from.extension }}">
+		<input class="from-extension-input-field" name="from" type="search" value="{{ current.from.extension }}"
+			hx-post="/web/search-extension"
+			hx-trigger="input changed delay:500ms, search"
+			hx-target="next div.tr"
+			hx-swap="outerHTML">
 	</span>
 	<span class="td">
 		<input name="to" type="text" value="{{ current.to.extension }}">
@@ -18,14 +22,19 @@
 		{% endif %}
 	{% endfor %}
 	<span class="td">
-		<button hx-get="/web/call-forward/{{ current.fwd_id }}" hx-target="closest form.tr" hx-target-error="#error_display">Cancel</button>
-		<button type="submit">Save</button>
+		<button id="cancel-edit" hx-get="/web/call-forward/{{ current.fwd_id }}" hx-target="closest form.tr" hx-target-error="#error_display" _="on click send endsearch to the next .search-result">Cancel</button>
+		<button id="submit" type="submit" _="on click send endsearch to the next .search-result">Save</button>
 	</span>
 </form>
+<div class="tr search-result" _="on endsearch remove me"></div>
 {% else %}
-<form class="tr" hx-post="/web/call-forward/new" hx-target="this" hx-swap="outerHTML" hx-target-error="#error_display" _="on click from #cancel-new remove me">
+<form class="tr new-forward" hx-post="/web/call-forward/new" hx-target="this" hx-swap="outerHTML" hx-target-error="#error_display" _="on cancelnew remove me">
 	<span class="td">
-		<input name="from" type="text" value="">
+		<input class="from-extension-input-field" name="from" type="search" value=""
+			hx-post="/web/search-extension"
+			hx-trigger="input changed delay:500ms, search"
+			hx-target="next div.tr"
+			hx-swap="outerHTML">
 	</span>
 	<span class="td">
 		<input name="to" type="text" value="">
@@ -36,8 +45,9 @@
 		</span>
 	{% endfor %}
 	<span class="td">
-		<button id="cancel-new">Cancel</button>
-		<button type="submit">Save</button>
+		<button id="cancel-new" _="on click send endsearch to the next .search-result then send cancelnew to the closest .new-forward">Cancel</button>
+		<button id="submit" type="submit" _="on click send endsearch to the next .search-result">Save</button>
 	</span>
 </form>
+<div class="tr search-result" _="on endsearch remove me"></div>
 {% endif %}

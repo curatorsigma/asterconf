@@ -28,6 +28,10 @@ pub(crate) fn create_protected_router() -> Router {
             "/web/call-forward/new",
             get(self::get::single_call_forward_new).post(self::post::single_call_forward_new),
         )
+        .route(
+            "/web/search-extension",
+            post(self::post::search_extension)
+        )
 }
 
 #[derive(Template)]
@@ -50,15 +54,6 @@ pub(super) mod get {
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode};
     use tracing::{event, Level};
-
-    #[derive(Template)]
-    #[template(path = "new_call_forward_button.html")]
-    struct NewCallForwardButtonTemplate {}
-
-    #[tracing::instrument(skip_all)]
-    pub(super) async fn new_call_forward_button() -> impl IntoResponse {
-        NewCallForwardButtonTemplate {}
-    }
 
     #[derive(Template)]
     #[template(path = "landing.html")]
@@ -149,7 +144,7 @@ pub(super) mod get {
 pub(super) mod post {
     use super::*;
 
-    use std::sync::Arc;
+    use std::{env::consts::DLL_EXTENSION, sync::Arc};
 
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode, Extension};
@@ -291,6 +286,145 @@ pub(super) mod post {
                 error_display("Internal Server Error. Please reload and try again."),
             )
                 .into_response(),
+        }
+    }
+
+    #[derive(Deserialize)]
+    pub(super) struct ExtensionSearchForm {
+        from: String,
+    }
+
+    /// Find the characters of `search` in `term`, in order
+    /// Returns
+    /// - None, if no match
+    /// - Some([indices-in-term-where-the-chars-from-search-are]) if match
+    fn string_fuzzy_match(search: &str, term: &str) -> Option<Vec<usize>> {
+        let our_search = search.to_lowercase();
+        let our_term = term.to_lowercase();
+
+        let mut last_used_idx = None;
+        let mut pos_vec = vec![];
+        for char in our_search.chars() {
+            let next_match = match last_used_idx {
+                Some(idx) => {
+                    (idx as usize + 1) + our_term[idx+1..].find(char)?
+                }
+                None => {
+                    our_term[0..].find(char)?
+                }
+            };
+            pos_vec.push(next_match);
+            last_used_idx = Some(next_match);
+        };
+        return Some(pos_vec);
+    }
+
+    fn mark_string_at_positions(s: &str, positions: Vec<usize>) -> Option<String> {
+        let mut res = String::new();
+        // the last char of s copied over
+        let mut last = None;
+        for idx in positions {
+            if idx >= s.len() {
+                return None;
+            };
+            match last {
+                Some(last_idx) => {
+                    // push everything between last and idx as-is
+                    res.push_str(&s[last_idx + 1..idx]);
+                }
+                None => {
+                    // push everything to the first index
+                    res.push_str(&s[0..idx]);
+                }
+            };
+            // push idx with marking
+            res.push_str("<b>");
+            res.push(s.chars().nth(idx)?);
+            res.push_str("</b>");
+
+            last = Some(idx);
+        };
+        // push the remainder of s
+        match last {
+            None => {
+                res.push_str(s);
+            }
+            Some(last_idx) => {
+                res.push_str(&s[last_idx + 1..]);
+            }
+        };
+        return Some(res);
+    }
+
+    #[derive(Template)]
+    #[template(path="search_results.html")]
+    pub(super) struct SearchResultTemplate {
+        results: Vec<(String, String)>,
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub(super) async fn search_extension(
+        Extension(config): Extension<Arc<Config>>,
+        axum_extra::extract::Form(search_form): axum_extra::extract::Form<ExtensionSearchForm>,
+    ) -> impl IntoResponse {
+        let relevant_extensions = config.extensions.iter()
+            .filter_map(|(ext_name, extension)| {
+                let ext_hr_string = extension.to_string();
+                let fuzzy_match = string_fuzzy_match(&search_form.from, &ext_hr_string);
+                if let Some(y) = fuzzy_match {
+                    Some((mark_string_at_positions(&ext_hr_string, y)?, ext_name.to_owned()))
+                } else { None }
+            })
+            .collect::<Vec<_>>();
+        SearchResultTemplate {
+            results: relevant_extensions,
+        }
+    }
+
+    #[cfg(test)]
+    mod test {
+        use crate::web_server::protected::post::mark_string_at_positions;
+
+        use super::string_fuzzy_match;
+
+        #[test]
+        fn fuzzy_match_success() {
+            let search = "rs";
+            let term = "rust";
+            assert_eq!(string_fuzzy_match(search, term), Some(vec![0, 2]));
+
+            let search = "usf";
+            let term = "usomef";
+            assert_eq!(string_fuzzy_match(search, term).unwrap(), vec![0, 1, 5]);
+
+            let search = "abc";
+            let term = "ababcab";
+            assert_eq!(string_fuzzy_match(search, term).unwrap(), vec![0, 1, 4]);
+
+            let search = "AbC";
+            let term = "aBabcab";
+            assert_eq!(string_fuzzy_match(search, term).unwrap(), vec![0, 1, 4]);
+        }
+        #[test]
+        fn fuzzy_match_fail() {
+            let search = "no";
+            let term = "this is neg a match";
+            assert_eq!(string_fuzzy_match(search, term), None);
+        }
+
+        #[test]
+        fn mark_string() {
+            let string = "Hello There";
+            let positions = vec![2];
+            assert_eq!(mark_string_at_positions(string, positions), Some("He<b>l</b>lo There".to_string()));
+
+            let string = "Hello There";
+            let positions = vec![0,2];
+            assert_eq!(mark_string_at_positions(string, positions), Some("<b>H</b>e<b>l</b>lo There".to_string()));
+
+            let string = "Hello There";
+            let positions = vec![100];
+            assert_eq!(mark_string_at_positions(string, positions), None);
         }
     }
 }
