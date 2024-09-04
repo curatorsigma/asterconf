@@ -1,8 +1,11 @@
 {% if let Some(current) = current_forward %}
 <form class="tr flex justify-evenly w-full p-2 border-zinc-400 border-t-0 border-2"
-	hx-post="/web/call-forward/{{ current.fwd_id }}/edit" hx-target="this" hx-swap="outerHTML" hx-target-error="#error_display">
+	hx-post="/web/call-forward/{{ current.fwd_id }}/edit"
+	hx-target="this" hx-swap="outerHTML"
+	hx-target-error="#error_display"
+	hx-indicator="#indicator-from-edit">
 
-		<div class="w-32 text-neutral-800 font-mono flex flex-col justify-center">
+		<div class="w-40 text-neutral-800 font-mono flex flex-col justify-center">
 			<input class="from-extension-input-field hover:border-zinc-400 border-2"
 				name="from"
 				type="search"
@@ -14,7 +17,7 @@
 			<div class="from-search-result" _="on endsearch set my innerHTML to ''"></div>
 		</div>
 
-		<div class="w-32 text-neutral-800 font-mono flex flex-col justify-center">
+		<div class="w-40 text-neutral-800 font-mono flex flex-col justify-center">
 			<input class="to-extension-input-field hover:border-zinc-400 border-2"
 				name="to"
 				type="search"
@@ -39,17 +42,28 @@
       </div>
 		{% endif %}
 	{% endfor %}
-	<div class="w-32 flex justify-center">
+	<div class="w-44 flex justify-center">
 		<button
 			id="cancel-edit"
 			hx-get="/web/call-forward/{{ current.fwd_id }}"
 			hx-target="closest form.tr"
 			hx-target-error="#error_display"
-			class="w-16 bg-neutral-800 hover:bg-neutral-500 focus:bg-neutral-500 hover:rounded-full">Cancel</button>
+			hx-indicator="#indicator-from-edit"
+			class="h-14 w-16 bg-neutral-800 hover:bg-neutral-600 focus:bg-neutral-600 rounded-lg hover:rounded-2xl">Cancel</button>
 		<button
 			id="submit"
 			type="submit"
-			class="w-16 bg-lime-900 hover:bg-lime-700 focus:bg-lime-700 hover:rounded-full">Save</button>
+			class="h-14 w-16 bg-lime-700/70 hover:bg-lime-700 rounded-lg hover:rounded-2xl">Save</button>
+		<div
+			class="htmx-indicator inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-e-transparent
+				align-[-0.125em]
+				text-surface
+				motion-reduce:animate-[spin_1.5s_linear_infinite]"
+			id="indicator-from-edit">
+		<span
+			class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]"
+			>Loading...</span>
+		</div>
   </div>
 </form>
 
@@ -62,7 +76,7 @@
 	hx-target-error="#error_display"
 	_="on cancelnew remove me">
 
-		<div class="w-32 text-neutral-800 font-mono flex flex-col justify-center">
+		<div class="w-40 text-neutral-800 font-mono flex flex-col justify-center">
 			<input class="from-extension-input-field hover:border-zinc-400 border-2"
 				name="from"
 				type="search"
@@ -74,7 +88,7 @@
 			<div class="from-search-result" _="on endsearch set my innerHTML to ''"></div>
 		</div>
 
-		<div class="w-32 text-neutral-800 font-mono flex flex-col justify-center">
+		<div class="w-40 text-neutral-800 font-mono flex flex-col justify-center">
 			<input class="to-extension-input-field hover:border-zinc-400 border-2"
 				name="to"
 				type="search"
@@ -97,17 +111,27 @@
 		</div>
 	{% endfor %}
 
-	<div class="w-32 flex justify-center">
+	<div class="w-44 flex justify-center">
 		<button
 			id="cancel-new"
 			_="on click send cancelnew to the closest .new-forward"
-			class="w-16 bg-neutral-800 hover:bg-neutral-500 focus:bg-neutral-500 hover:rounded-full"
+			class="h-14 w-16 bg-neutral-800 hover:bg-neutral-600 focus:bg-neutral-600 rounded-lg hover:rounded-2xl"
 			>Cancel</button>
 		<button
 			id="submit"
 			type="submit"
-			class="w-16 bg-lime-900 hover:bg-lime-700 focus:bg-lime-700 hover:rounded-full"
+			class="h-14 w-16 bg-lime-700/70 hover:bg-lime-700 rounded-lg hover:rounded-2xl"
 			>Save</button>
+		<div
+			class="htmx-indicator inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-e-transparent
+				align-[-0.125em]
+				text-surface
+				motion-reduce:animate-[spin_1.5s_linear_infinite]"
+			id="indicator-from-show">
+		<span
+			class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]"
+			>Loading...</span>
+		</div>
   </div>
 </form>
 {% endif %}

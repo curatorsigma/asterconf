@@ -22,27 +22,37 @@
 	</div>
 
 	<div class="flex justify-center m-14">
-		<button class="text-xl bg-lime-700 p-2 hover:rounded-full" hx-get="/web/call-forward/new" hx-target="#phantom_row" hx-swap="afterend">New call-forward</button>
+		<button
+			class="text-xl text-sky-500 bg-lime-700/70 p-2 rounded-lg hover:rounded-2xl hover:bg-lime-700"
+			hx-get="/web/call-forward/new"
+			hx-target="#phantom_row"
+			hx-swap="afterend">
+			New call-forward
+		</button>
 	</div>
 
 	<div id="flex justify-center text-inherit">
 		<div id="existing-forwards" class="flex justify-center bg-neutral-700 text-sky-300">
 			<div class="flex flex-col justify-evenly w-4/5">
 				<div class="tr flex justify-evenly w-full p-2 border-zinc-400 border-2">
-					<div class="td w-32 flex justify-center">From</div>
-					<div class="td w-32 flex justify-center">To</div>
+					<div class="td w-40 flex justify-center">From</div>
+					<div class="td w-40 flex justify-center">To</div>
 					{% for ctx in contexts %}
 						<div class="td w-20 flex justify-center">{{ ctx.display_name }}</div>
 					{% endfor %}
-					<div class="w-32"></div>
+					<div class="w-44"></div>
 				</div>
 
 				<div class="tr" id="phantom_row"></div>
 
 				{% for fwd in existing_forwards %}
 					<div class="tr flex justify-evenly w-full p-2 border-zinc-400 border-2">
-						<div class="td w-32 text-neutral-200 font-mono border-2 flex justify-center">{{ fwd.from }}</div>
-						<div class="td w-32 text-neutral-200 font-mono border-2 flex justify-center">{{ fwd.to }}</div>
+						<div class="td w-40 text-neutral-200 font-mono border-2 flex flex-col justify-center">
+							<div class="flex justify-center text-balance">{{ fwd.from }}</div>
+						</div>
+						<div class="td w-40 text-neutral-200 font-mono border-2 flex flex-col justify-center">
+							<div class="flex justify-center text-balance">{{ fwd.to }}</div>
+						</div>
 						{% for ctx in contexts %}
 							<div class="w-20 flex justify-center">
 								{% if fwd.in_contexts.contains(ctx) %}
@@ -52,9 +62,33 @@
 								{% endif %}
 							</div>
 						{% endfor %}
-						<div class="td w-32 flex justify-center">
-						<button hx-get="/web/call-forward/{{ fwd.fwd_id }}/edit" hx-target="closest div.tr" hx-swap="outerHTML" class="w-16 bg-neutral-800 hover:bg-neutral-500 focus:bg-neutral-500 hover:rounded-full">Edit</button>
-						<button hx-delete="/web/call-forward/{{ fwd.fwd_id }}" hx-target="closest div.tr" hx-swap="outerHTML" class="w-16 bg-red-600/70 hover:bg-red-600/90 focus:bg-red-600/90 hover:rounded-full">Delete</button>
+						<div class="td w-44 flex justify-center">
+						<button
+							hx-get="/web/call-forward/{{ fwd.fwd_id }}/edit"
+							hx-target="closest div.tr"
+							hx-swap="outerHTML"
+							hx-indicator="#indicator-from-show"
+							class="h-14 w-16 bg-neutral-800 hover:bg-neutral-600 rounded-lg hover:rounded-2xl">
+							Edit
+						</button>
+						<button
+							hx-delete="/web/call-forward/{{ fwd.fwd_id }}"
+							hx-target="closest div.tr"
+							hx-swap="outerHTML"
+							hx-indicator="#indicator-from-show"
+							class="h-14 w-16 bg-red-600/70 hover:bg-red-600/90 rounded-lg hover:rounded-2xl">
+							Delete
+						</button>
+							<div
+								class="htmx-indicator inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-e-transparent
+									align-[-0.125em]
+									text-surface
+									motion-reduce:animate-[spin_1.5s_linear_infinite]"
+								id="indicator-from-show">
+							<span
+								class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]"
+								>Loading...</span>
+							</div>
 						</div>
 					</div>
 				{% endfor %}
