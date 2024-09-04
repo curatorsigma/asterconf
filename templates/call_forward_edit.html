@@ -5,7 +5,7 @@
 	hx-post="/web/call-forward/{{ current.fwd_id }}/edit"
 	hx-target="this" hx-swap="outerHTML"
 	hx-target-error="#error_display"
-	hx-indicator="#indicator-from-edit">
+	hx-indicator="#indicator-from-edit-{{ current.fwd_id }}">
 
 		<div class="w-40 text-neutral-800 font-mono flex flex-col justify-center">
 			<input class="from-extension-input-field hover:border-zinc-400 border-2"
@@ -50,7 +50,7 @@
 			hx-get="/web/call-forward/{{ current.fwd_id }}"
 			hx-target="closest form.tr"
 			hx-target-error="#error_display"
-			hx-indicator="#indicator-from-edit"
+			hx-indicator="#indicator-from-edit-{{ current.fwd_id }}"
 			class="h-12 w-12 bg-neutral-800 hover:bg-neutral-600 focus:bg-neutral-600 rounded-lg hover:rounded-2xl">
 			<svg class="h-8 w-8 translate-x-2"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <circle cx="12" cy="12" r="10" />  <line x1="15" y1="9" x2="9" y2="15" />  <line x1="9" y1="9" x2="15" y2="15" /></svg>
 		</button>
@@ -65,7 +65,7 @@
 				align-[-0.125em]
 				text-surface
 				motion-reduce:animate-[spin_1.5s_linear_infinite]"
-			id="indicator-from-edit">
+			id="indicator-from-edit-{{ current.fwd_id }}">
 		<span
 			class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]"
 			>Lade.</span>
@@ -139,7 +139,7 @@
 				align-[-0.125em]
 				text-surface
 				motion-reduce:animate-[spin_1.5s_linear_infinite]"
-			id="indicator-from-show">
+			id="indicator-from-new">
 		<span
 			class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]"
 			>Lade.</span>
