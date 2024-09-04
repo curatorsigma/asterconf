@@ -76,7 +76,10 @@ impl Webserver {
             .layer(auth_layer)
             .layer(Extension(our_config))
             .route("/scripts/htmx@2.0.2.js", get(htmx_script))
-            .route("/scripts/hyperscript.org@0.9.12.js", get(hyperscript_script))
+            .route(
+                "/scripts/hyperscript.org@0.9.12.js",
+                get(hyperscript_script),
+            )
             .route(
                 "/scripts/htmx@2.0.2_response_targets.js",
                 get(htmx_script_response_targets),

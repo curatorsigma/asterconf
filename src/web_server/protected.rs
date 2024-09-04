@@ -3,7 +3,7 @@ use std::sync::Arc;
 use askama::Template;
 /// The routes protected by a login
 use axum::{
-    routing::{delete, get, post},
+    routing::{get, post},
     Extension, Router,
 };
 
@@ -32,11 +32,11 @@ pub(crate) fn create_protected_router() -> Router {
         )
         .route(
             "/web/search-extension/from",
-            post(self::post::from_search_extension)
+            post(self::post::from_search_extension),
         )
         .route(
             "/web/search-extension/to",
-            post(self::post::to_search_extension)
+            post(self::post::to_search_extension),
         )
 }
 
@@ -59,7 +59,6 @@ pub(super) mod get {
     use askama::Template;
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode};
-    use tracing::{event, Level};
 
     #[derive(Template)]
     #[template(path = "landing.html")]
@@ -106,10 +105,7 @@ pub(super) mod get {
             Ok(fwd) => {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
-                SingleCallForwardShowTemplate {
-                    fwd,
-                    contexts,
-                }
+                SingleCallForwardShowTemplate { fwd, contexts }
             }
             .into_response(),
             Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
@@ -162,12 +158,11 @@ pub(super) mod get {
 pub(super) mod post {
     use super::*;
 
-    use std::{env::consts::DLL_EXTENSION, sync::Arc};
+    use std::sync::Arc;
 
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode, Extension};
     use serde::Deserialize;
-    use tracing::info;
 
     use crate::{
         db::{new_call_forward, update_call_forward, DBError},
@@ -227,10 +222,7 @@ pub(super) mod post {
             Ok(x) => {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
-                SingleCallForwardShowTemplate {
-                    fwd: x,
-                    contexts,
-                }.into_response()
+                SingleCallForwardShowTemplate { fwd: x, contexts }.into_response()
             }
             Err(DBError::OverlappingCallForwards(x, y)) => (
                 StatusCode::BAD_REQUEST,
@@ -293,7 +285,8 @@ pub(super) mod post {
                 SingleCallForwardShowTemplate {
                     fwd: forward,
                     contexts,
-                }.into_response()
+                }
+                .into_response()
             }
             Err(DBError::CannotSelectCallForward(fwdid)) => (
                 StatusCode::BAD_REQUEST,
@@ -334,16 +327,12 @@ pub(super) mod post {
         let mut pos_vec = vec![];
         for char in our_search.chars() {
             let next_match = match last_used_idx {
-                Some(idx) => {
-                    (idx as usize + 1) + our_term[idx+1..].find(char)?
-                }
-                None => {
-                    our_term[0..].find(char)?
-                }
+                Some(idx) => (idx as usize + 1) + our_term[idx + 1..].find(char)?,
+                None => our_term[0..].find(char)?,
             };
             pos_vec.push(next_match);
             last_used_idx = Some(next_match);
-        };
+        }
         return Some(pos_vec);
     }
 
@@ -371,7 +360,7 @@ pub(super) mod post {
             res.push_str("</b>");
 
             last = Some(idx);
-        };
+        }
         // push the remainder of s
         match last {
             None => {
@@ -385,7 +374,7 @@ pub(super) mod post {
     }
 
     #[derive(Template)]
-    #[template(path="search_results.html")]
+    #[template(path = "search_results.html")]
     pub(super) struct SearchResultTemplate {
         results: Vec<(String, String)>,
         target: String,
@@ -396,13 +385,20 @@ pub(super) mod post {
         Extension(config): Extension<Arc<Config>>,
         axum_extra::extract::Form(search_form): axum_extra::extract::Form<FromExtensionSearchForm>,
     ) -> impl IntoResponse {
-        let relevant_extensions = config.extensions.iter()
+        let relevant_extensions = config
+            .extensions
+            .iter()
             .filter_map(|(ext_name, extension)| {
                 let ext_hr_string = extension.to_string();
                 let fuzzy_match = string_fuzzy_match(&search_form.from, &ext_hr_string);
                 if let Some(y) = fuzzy_match {
-                    Some((mark_string_at_positions(&ext_hr_string, y)?, ext_name.to_owned()))
-                } else { None }
+                    Some((
+                        mark_string_at_positions(&ext_hr_string, y)?,
+                        ext_name.to_owned(),
+                    ))
+                } else {
+                    None
+                }
             })
             .collect::<Vec<_>>();
         SearchResultTemplate {
@@ -416,13 +412,20 @@ pub(super) mod post {
         Extension(config): Extension<Arc<Config>>,
         axum_extra::extract::Form(search_form): axum_extra::extract::Form<ToExtensionSearchForm>,
     ) -> impl IntoResponse {
-        let relevant_extensions = config.extensions.iter()
+        let relevant_extensions = config
+            .extensions
+            .iter()
             .filter_map(|(ext_name, extension)| {
                 let ext_hr_string = extension.to_string();
                 let fuzzy_match = string_fuzzy_match(&search_form.to, &ext_hr_string);
                 if let Some(y) = fuzzy_match {
-                    Some((mark_string_at_positions(&ext_hr_string, y)?, ext_name.to_owned()))
-                } else { None }
+                    Some((
+                        mark_string_at_positions(&ext_hr_string, y)?,
+                        ext_name.to_owned(),
+                    ))
+                } else {
+                    None
+                }
             })
             .collect::<Vec<_>>();
         SearchResultTemplate {
@@ -466,11 +469,17 @@ pub(super) mod post {
         fn mark_string() {
             let string = "Hello There";
             let positions = vec![2];
-            assert_eq!(mark_string_at_positions(string, positions), Some("He<b>l</b>lo There".to_string()));
+            assert_eq!(
+                mark_string_at_positions(string, positions),
+                Some("He<b>l</b>lo There".to_string())
+            );
 
             let string = "Hello There";
-            let positions = vec![0,2];
-            assert_eq!(mark_string_at_positions(string, positions), Some("<b>H</b>e<b>l</b>lo There".to_string()));
+            let positions = vec![0, 2];
+            assert_eq!(
+                mark_string_at_positions(string, positions),
+                Some("<b>H</b>e<b>l</b>lo There".to_string())
+            );
 
             let string = "Hello There";
             let positions = vec![100];
