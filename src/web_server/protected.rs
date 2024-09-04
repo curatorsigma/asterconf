@@ -184,7 +184,7 @@ pub(super) mod post {
         let Some(from_ext) = config.extensions.get(&forward_form.from) else {
             return (
                 StatusCode::BAD_REQUEST,
-                error_display("Please set a From-Extension that is known."),
+                error_display("Das 'Anruf für &darr;'-Feld muss eine bekannte Nummer sein."),
             )
                 .into_response();
         };
@@ -194,7 +194,7 @@ pub(super) mod post {
         let Some(ctx_checkboxes) = forward_form.ctx_checkboxes else {
             return (
                 StatusCode::BAD_REQUEST,
-                error_display("Please select at least one context"),
+                error_display("Eine Weiterleitung muss mindestens einen Kontext enthalten."),
             )
                 .into_response();
         };
@@ -202,7 +202,7 @@ pub(super) mod post {
             let Some(this_ctx) = config.contexts.get(&ctx) else {
                 return (
                     StatusCode::BAD_REQUEST,
-                    error_display(&format!("Context Not Found: {ctx}.")),
+                    error_display(&format!("Konnte den Kontext {ctx} nicht finden.")),
                 )
                     .into_response();
             };
@@ -227,13 +227,13 @@ pub(super) mod post {
             Err(DBError::OverlappingCallForwards(x, y)) => (
                 StatusCode::BAD_REQUEST,
                 error_display(&format!(
-                    "The Extension {x} already has a forward set in Context {y}."
+                    "Anrufe an die Nummer {x} werden bereits weitergeleitet wenn sie von {y} kommen."
                 )),
             )
                 .into_response(),
             Err(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                error_display("Internal Server Error. Please reload and try again."),
+                error_display("Interner Fehler. Bitte Seite neu laden und erneut versuchen."),
             )
                 .into_response(),
         }
@@ -248,7 +248,7 @@ pub(super) mod post {
         let Some(from_ext) = config.extensions.get(&forward_form.from) else {
             return (
                 StatusCode::BAD_REQUEST,
-                error_display("Please set a From-Extension that is known."),
+                error_display("Das 'Anruf für &darr;'-Feld muss eine bekannte Nummer sein."),
             )
                 .into_response();
         };
@@ -258,13 +258,13 @@ pub(super) mod post {
         let Some(ctx_checkboxes) = forward_form.ctx_checkboxes else {
             return (
                 StatusCode::BAD_REQUEST,
-                error_display("Please select at least one context"),
+                error_display("Eine Weiterleitung muss mindestens einen Kontext enthalten dessen Anrufe weitergeleitet werden."),
             )
                 .into_response();
         };
         for ctx in ctx_checkboxes {
             let Some(this_ctx) = config.contexts.get(&ctx) else {
-                return (StatusCode::BAD_REQUEST, error_display("Context Not Found."))
+                return (StatusCode::BAD_REQUEST, error_display(&format!("Kontext {ctx} konnte nicht gefunden werden.")))
                     .into_response();
             };
             contexts.push(this_ctx);
@@ -290,17 +290,17 @@ pub(super) mod post {
             }
             Err(DBError::CannotSelectCallForward(fwdid)) => (
                 StatusCode::BAD_REQUEST,
-                error_display("Call Forward no longer exists. Please reload and try again."),
+                error_display("Diese Weiterleitung existiert nicht mehr. Bitte Seite neu laden und erneut versuchen."),
             )
                 .into_response(),
             Err(DBError::CannotSelectContexts(_)) => (
                 StatusCode::BAD_REQUEST,
-                error_display("Context not found.. Please reload and try again."),
+                error_display("Kontext existiert nicht mehr. Bitte Seite neu laden und erneut versuchen."),
             )
                 .into_response(),
             Err(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                error_display("Internal Server Error. Please reload and try again."),
+                error_display("Interner Fehler. Bitte Seite neu laden und erneut versuchen."),
             )
                 .into_response(),
         }

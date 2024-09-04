@@ -1,5 +1,7 @@
 {% if let Some(current) = current_forward %}
-<form class="tr flex justify-evenly w-full p-2 border-zinc-400 border-t-0 border-2"
+<form
+	class="tr flex justify-evenly w-full p-2 border-zinc-400 border-t-0 border-2"
+	autocomplete="off"
 	hx-post="/web/call-forward/{{ current.fwd_id }}/edit"
 	hx-target="this" hx-swap="outerHTML"
 	hx-target-error="#error_display"
@@ -42,18 +44,22 @@
       </div>
 		{% endif %}
 	{% endfor %}
-	<div class="w-44 flex justify-center">
+	<div class="w-36 flex justify-center">
 		<button
 			id="cancel-edit"
 			hx-get="/web/call-forward/{{ current.fwd_id }}"
 			hx-target="closest form.tr"
 			hx-target-error="#error_display"
 			hx-indicator="#indicator-from-edit"
-			class="h-14 w-16 bg-neutral-800 hover:bg-neutral-600 focus:bg-neutral-600 rounded-lg hover:rounded-2xl">Cancel</button>
+			class="h-12 w-12 bg-neutral-800 hover:bg-neutral-600 focus:bg-neutral-600 rounded-lg hover:rounded-2xl">
+			<svg class="h-8 w-8 translate-x-2"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <circle cx="12" cy="12" r="10" />  <line x1="15" y1="9" x2="9" y2="15" />  <line x1="9" y1="9" x2="15" y2="15" /></svg>
+		</button>
 		<button
 			id="submit"
 			type="submit"
-			class="h-14 w-16 bg-lime-700/70 hover:bg-lime-700 rounded-lg hover:rounded-2xl">Save</button>
+			class="h-12 w-12 bg-lime-700/70 hover:bg-lime-700 rounded-lg hover:rounded-2xl">
+				<svg class="h-8 w-8 translate-x-2"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />  <polyline points="17 21 17 13 7 13 7 21" />  <polyline points="7 3 7 8 15 8" /></svg>
+			</button>
 		<div
 			class="htmx-indicator inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-e-transparent
 				align-[-0.125em]
@@ -62,14 +68,16 @@
 			id="indicator-from-edit">
 		<span
 			class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]"
-			>Loading...</span>
+			>Lade.</span>
 		</div>
   </div>
 </form>
 
 {% else %}
 
-<form class="tr new-forward flex justify-evenly w-full p-2 border-zinc-400 border-t-0 border-2"
+<form
+	class="tr new-forward flex justify-evenly w-full p-2 border-zinc-400 border-t-0 border-2"
+	autocomplete="off"
 	hx-post="/web/call-forward/new"
 	hx-target="this"
 	hx-swap="outerHTML"
@@ -111,17 +119,21 @@
 		</div>
 	{% endfor %}
 
-	<div class="w-44 flex justify-center">
+	<div class="w-36 flex justify-center">
 		<button
 			id="cancel-new"
 			_="on click send cancelnew to the closest .new-forward"
-			class="h-14 w-16 bg-neutral-800 hover:bg-neutral-600 focus:bg-neutral-600 rounded-lg hover:rounded-2xl"
-			>Cancel</button>
+			class="h-12 w-12 bg-neutral-800 hover:bg-neutral-600 focus:bg-neutral-600 rounded-lg hover:rounded-2xl"
+			>
+			<svg class="h-8 w-8 translate-x-2"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <circle cx="12" cy="12" r="10" />  <line x1="15" y1="9" x2="9" y2="15" />  <line x1="9" y1="9" x2="15" y2="15" /></svg>
+		</button>
 		<button
 			id="submit"
 			type="submit"
-			class="h-14 w-16 bg-lime-700/70 hover:bg-lime-700 rounded-lg hover:rounded-2xl"
-			>Save</button>
+			class="h-12 w-12 bg-lime-700/70 hover:bg-lime-700 rounded-lg hover:rounded-2xl"
+			>
+			<svg class="h-8 w-8 translate-x-2"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />  <polyline points="17 21 17 13 7 13 7 21" />  <polyline points="7 3 7 8 15 8" /></svg>
+		</button>
 		<div
 			class="htmx-indicator inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-e-transparent
 				align-[-0.125em]
@@ -130,7 +142,7 @@
 			id="indicator-from-show">
 		<span
 			class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]"
-			>Loading...</span>
+			>Lade.</span>
 		</div>
   </div>
 </form>
