@@ -10,20 +10,21 @@
 </head>
 
 <body hx-ext="response-targets" class="min-h-screen bg-neutral-700 text-sky-500 font-mono">
-	<div class="flex justify-center bg-neutral-900 border-zinc-400 border-b-4 w-full mb-20">
+	<header class="sticky top-0 z-40 backdrop-blur flex justify-center bg-neutral-900 border-zinc-400 border-b-4 w-full shadow-md">
 		<div class="flex justify-between w-4/5">
-		<div class="text-xl"> $whoami &rarr; <b>{{ username }}</b> </div>
-		<a class="text-xl h-8 w-12 bg-neutral-900 hover:bg-neutral-700 hover:rounded-2xl" href="/logout">
-			<svg class="h-8 w-8 translate-x-2"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />  <path d="M7 12h14l-3 -3m0 6l3 -3" /></svg>
-		</a>
+			<div class="text-xl"> $whoami &rarr; <b>{{ username }}</b> </div>
+			<a class="text-xl h-8 w-12 bg-neutral-900 hover:bg-neutral-700 hover:rounded-2xl" href="/logout">
+				<svg class="h-8 w-8 translate-x-2"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />  <path d="M7 12h14l-3 -3m0 6l3 -3" /></svg>
+			</a>
 		</div>
-	</div>
+	</header>
 
-	<div class="flex justify-center m-14">
+	<main class="static translate-y-8 z-20">
+	<div class="relative flex justify-center m-12">
 		<div class="text-xl text-red-500" id="error_display" _="on htmx:beforeSend from elsewhere set my innerHTML to ''"></div>
 	</div>
 
-	<div class="flex justify-center m-14">
+	<div class="relative flex justify-center m-14">
 		<button
 			class="text-xl text-sky-500 bg-lime-700/70 p-2 rounded-lg hover:rounded-2xl hover:bg-lime-700"
 			hx-get="/web/call-forward/new"
@@ -33,11 +34,11 @@
 		</button>
 	</div>
 
-	<div id="flex justify-center text-inherit">
-		<div id="existing-forwards" class="flex justify-center bg-neutral-700 text-sky-300">
-			<div class="flex flex-col justify-evenly w-4/5">
+	<div class="sticky top-0">
+		<div id="relative existing-forwards" class="flex justify-center bg-neutral-700 text-sky-300">
+			<div class="relative flex flex-col justify-evenly w-4/5">
 
-				<div class="tr flex justify-evenly w-full p-2 border-zinc-400 border-2">
+				<div class="sticky top-0 z-10 flex justify-evenly w-full p-2 border-zinc-400 border-2 bg-neutral-700">
 					<div class="td w-40 flex justify-center">Anruf für &darr;</div>
 					<div class="td w-40 flex justify-center">Weitergeleitet zu &darr; wenn von &rarr;</div>
 					{% for ctx in contexts %}
@@ -98,5 +99,6 @@
 			</div>
 		</div>
 	</div>
+	</main>
 </body>
 </html>
