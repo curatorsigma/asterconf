@@ -255,7 +255,7 @@ impl Config {
     // so I don't care about proper error handling
     // TODO: this needs to log its own errors, because it is called in lazy_static
     pub async fn create() -> Result<Config, Box<dyn std::error::Error>> {
-        let config_path = Path::new("config.yaml");
+        let config_path = Path::new("/etc/asterconf/config.yaml");
         let f = File::open(config_path)?;
         let config_data: ConfigFileData = serde_yaml::from_reader(f)?;
         // static extensions and contexts
