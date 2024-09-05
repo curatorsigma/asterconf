@@ -48,7 +48,7 @@ pub(crate) struct LDAPBackend {
     bind_pw: String,
 }
 impl LDAPBackend {
-    #[tracing::instrument(skip_all,ret,err)]
+    #[tracing::instrument(skip_all,err)]
     pub async fn new(
         bind_string: &str,
         bind_dn: &str,
@@ -77,7 +77,6 @@ impl LDAPBackend {
     }
 
     /// rebind as the search user
-    #[tracing::instrument(skip_all,ret,err)]
     pub async fn rebind(&self) -> Result<(), LDAPError> {
         let mut our_handle = self.bound_handle.clone();
         our_handle
@@ -95,7 +94,7 @@ impl AuthnBackend for LDAPBackend {
     type User = User;
     type Credentials = UserCredentials;
     type Error = LDAPError;
-    #[tracing::instrument(skip_all,ret,err)]
+    #[tracing::instrument(skip_all,err)]
     async fn authenticate(&self, creds: UserCredentials) -> Result<Option<User>, LDAPError> {
         let user = match self.get_user(&creds.username).await? {
             Some(x) => x,
@@ -120,7 +119,7 @@ impl AuthnBackend for LDAPBackend {
         Ok(res)
     }
 
-    #[tracing::instrument(skip_all,ret,err)]
+    #[tracing::instrument(skip_all,err)]
     async fn get_user(&self, id: &UserId<Self>) -> Result<Option<User>, LDAPError> {
         let mut our_handle = self.bound_handle.clone();
         let (rs, _res) = our_handle
