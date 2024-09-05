@@ -68,7 +68,7 @@ pub(super) mod get {
         contexts: Vec<&'a Context>,
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(ret)]
     pub(super) async fn root(
         auth_session: AuthSession,
         Extension(config): Extension<Arc<Config>>,
