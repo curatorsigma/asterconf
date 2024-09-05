@@ -1,0 +1,7 @@
+.git
+.gitignore
+.env
+target/
+TODO.md
+tailwindcss
+config.example.yaml
