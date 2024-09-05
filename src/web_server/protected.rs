@@ -59,6 +59,7 @@ pub(super) mod get {
     use askama::Template;
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode};
+    use tracing::warn;
 
     #[derive(Template)]
     #[template(path = "landing.html")]
@@ -76,6 +77,7 @@ pub(super) mod get {
         let user = if let Some(x) = auth_session.user {
             x
         } else {
+            warn!("Sending internal server error because there is no user in the auth session");
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         };
         let call_forward_res = get_all_call_forwards(&config).await;
@@ -91,7 +93,11 @@ pub(super) mod get {
                 }
                 .into_response()
             }
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            Err(e) => {
+                warn!("Sending internal server error because there was a problem getting call forwards.");
+                warn!("{e}");
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            },
         }
     }
 
