@@ -65,7 +65,7 @@ impl Webserver {
         //
         // This combines the session layer with our backend to establish the auth
         // service which will provide the auth session as a request extension.
-        let auth_backend = Config::create().await?.ldap_config;
+        let auth_backend = config.ldap_config.clone();
         let auth_layer = AuthManagerLayerBuilder::new(auth_backend, session_layer).build();
 
         let our_config = config.clone();

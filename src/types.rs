@@ -309,7 +309,7 @@ impl Config {
                 config_data.tls_key_file,
             )
             .await
-            .expect("tls file should exist"),
+            .expect("At least one of the given TLS files does not exist or is not readable."),
             ldap_config: crate::ldap::LDAPBackend::new(
                 &config_data.ldap.hostname,
                 config_data.ldap.port,
