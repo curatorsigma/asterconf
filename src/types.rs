@@ -6,6 +6,7 @@ use axum_server::tls_rustls::RustlsConfig;
 /// Structs used by the other components
 use serde::Deserialize;
 use sqlx::PgPool;
+use tracing::{event, Level};
 
 use crate::db::DBError;
 
@@ -258,8 +259,20 @@ impl Config {
     // TODO: this needs to log its own errors, because it is called in lazy_static
     pub async fn create() -> Result<Config, Box<dyn std::error::Error>> {
         let config_path = Path::new("/etc/asterconf/config.yaml");
-        let f = File::open(config_path)?;
-        let config_data: ConfigFileData = serde_yaml::from_reader(f)?;
+        let f = match File::open(config_path) {
+            Ok(x) => x,
+            Err(e) => {
+                event!(Level::ERROR, "config file /etc/asterconf/config.yaml not readable: {e}");
+                return Err(Box::new(e));
+            }
+        };
+        let config_data: ConfigFileData = match serde_yaml::from_reader(f) {
+            Ok(x) => x,
+            Err(e) => {
+                event!(Level::ERROR, "config file had syntax errors: {e}");
+                return Err(Box::new(e));
+            }
+        };
         // static extensions and contexts
         let extensions: HashMap<String, Extension> = config_data
             .extensions
@@ -280,7 +293,13 @@ impl Config {
             config_data.db_port,
             config_data.db_database
         );
-        let pool = sqlx::postgres::PgPool::connect(&url).await?;
+        let pool = match sqlx::postgres::PgPool::connect(&url).await {
+            Ok(x) => x,
+            Err(e) => {
+                event!(Level::ERROR, "Could not connect to postgres: {e}");
+                return Err(Box::new(e));
+            }
+        };
         // webserver settings
         let web_bind_string = format!(
             "{}:{}",
@@ -294,6 +313,32 @@ impl Config {
             "{}:{}",
             config_data.agi_bind_addr, config_data.agi_bind_port
         );
+        let rustls_config = match RustlsConfig::from_pem_file(
+                config_data.tls_cert_file,
+                config_data.tls_key_file,
+            )
+            .await {
+            Ok(x) => x,
+            Err(e) => {
+                event!(Level::ERROR, "There was a problem reading the TLS cert/key: {e}");
+                return Err(Box::new(e));
+            }
+        };
+        let ldap_config = match crate::ldap::LDAPBackend::new(
+            &config_data.ldap.hostname,
+            config_data.ldap.port,
+            &config_data.ldap.bind_user,
+            &config_data.ldap.bind_password,
+            &config_data.ldap.user_filter,
+            &config_data.ldap.base_dn,
+        )
+        .await {
+            Ok(x) => x,
+            Err(e) => {
+                event!(Level::ERROR, "LDAP connection could not be established: {e}");
+                return Err(Box::new(e));
+            }
+        };
         Ok(Config {
             extensions,
             contexts,
@@ -304,21 +349,8 @@ impl Config {
             web_bind_port_tls: config_data.web_bind_port_tls,
             agi_bind_string,
             agi_digest_secret: config_data.agi_digest_secret,
-            rustls_config: RustlsConfig::from_pem_file(
-                config_data.tls_cert_file,
-                config_data.tls_key_file,
-            )
-            .await
-            .expect("At least one of the given TLS files does not exist or is not readable."),
-            ldap_config: crate::ldap::LDAPBackend::new(
-                &config_data.ldap.hostname,
-                config_data.ldap.port,
-                &config_data.ldap.bind_user,
-                &config_data.ldap.bind_password,
-                &config_data.ldap.user_filter,
-                &config_data.ldap.base_dn,
-            )
-            .await?,
+            rustls_config,
+            ldap_config,
         })
     }
 }
