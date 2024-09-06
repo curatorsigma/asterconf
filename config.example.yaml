@@ -33,7 +33,9 @@ agi_digest_secret: "NOT_THE_SECRET"
 # only LDAPS is supported. It is my strong opinion that non-TLS LDAP should NEVER EVER be used in any circumstance.
 # Connection to Unix sockets is currently not supported either because I did not need it.
 ldap:
-  bind_string: "ldaps://ldaps.example.com:636"
+  # will bind to: ldaps://{hostname}:{port}
+  hostname: "ldaps.example.com"
+  port: 636
   bind_user: "uid=asterconf_search,cn=users,dc=example,dc=com"
   bind_password: "NOT_THE_PASSWORD"
   base_dn: "dc=example,dc=com"

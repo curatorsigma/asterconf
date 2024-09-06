@@ -50,13 +50,15 @@ pub(crate) struct LDAPBackend {
 impl LDAPBackend {
     #[tracing::instrument(skip_all,err)]
     pub async fn new(
-        bind_string: &str,
+        hostname: &str,
+        port: u16,
         bind_dn: &str,
         bind_pw: &str,
         user_filter: &str,
         base_dn: &str,
     ) -> Result<Self, LDAPError> {
-        let (conn, mut ldap) = LdapConnAsync::new(bind_string)
+        let bind_string = format!("ldaps://{hostname}:{port}");
+        let (conn, mut ldap) = LdapConnAsync::new(&bind_string)
             .await
             .map_err(|_| LDAPError::CannotConnect)?;
         // spawn a task that drives the connection until ldap is dropped

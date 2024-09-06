@@ -209,7 +209,8 @@ impl std::fmt::Debug for ConfigFileData {
 
 #[derive(Deserialize)]
 struct LDAPConfigData {
-    bind_string: String,
+    hostname: String,
+    port: u16,
     bind_user: String,
     bind_password: String,
     base_dn: String,
@@ -218,7 +219,8 @@ struct LDAPConfigData {
 impl std::fmt::Debug for LDAPConfigData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("LDAPConfigData")
-            .field("bind_string", &self.bind_string)
+            .field("hostname", &self.hostname)
+            .field("port", &self.port)
             .field("bind_user", &self.bind_user)
             .field("bind_password", &"[redacted]")
             .field("base_dn", &self.base_dn)
@@ -309,7 +311,8 @@ impl Config {
             .await
             .expect("tls file should exist"),
             ldap_config: crate::ldap::LDAPBackend::new(
-                &config_data.ldap.bind_string,
+                &config_data.ldap.hostname,
+                config_data.ldap.port,
                 &config_data.ldap.bind_user,
                 &config_data.ldap.bind_password,
                 &config_data.ldap.user_filter,
