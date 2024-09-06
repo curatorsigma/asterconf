@@ -6,6 +6,7 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
+use uuid::Uuid;
 
 use crate::types::{CallForward, Config, Context, HasId};
 
@@ -13,6 +14,13 @@ fn error_display(s: &str) -> String {
     // we cannot control hx-swap separately for hx-target and hx-target-error
     // so we swap outer-html and add the surrounding div all the time
     format!("<div class=\"text-red-500 flex justify-center\" id=\"error_display\" _=\"on htmx:beforeSend from elsewhere set my innerHTML to ''\">{}</div>", s)
+}
+
+
+#[derive(Template)]
+#[template(path="500.html")]
+struct InternalServerErrorTemplate {
+    error_uuid: Uuid,
 }
 
 pub(crate) fn create_protected_router() -> Router {
@@ -60,6 +68,7 @@ pub(super) mod get {
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode};
     use tracing::warn;
+    use uuid::Uuid;
 
     #[derive(Template)]
     #[template(path = "landing.html")]
@@ -76,8 +85,9 @@ pub(super) mod get {
         let user = if let Some(x) = auth_session.user {
             x
         } else {
-            warn!("Sending internal server error because there is no user in the auth session");
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            let error_uuid = Uuid::new_v4();
+            warn!("Sending internal server error because there is no user in the auth session. uuid: {error_uuid}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
         };
         let call_forward_res = get_all_call_forwards(&config).await;
         match call_forward_res {
@@ -93,9 +103,10 @@ pub(super) mod get {
                 .into_response()
             }
             Err(e) => {
+                let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem getting call forwards.");
-                warn!("{e}");
-                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                warn!("DBError: {e} Error-UUID: {error_uuid}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
             },
         }
     }
@@ -113,7 +124,12 @@ pub(super) mod get {
                 SingleCallForwardShowTemplate { fwd, contexts }
             }
             .into_response(),
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            Err(e) => {
+                let error_uuid = Uuid::new_v4();
+                warn!("Sending internal server error because there was a problem getting a call forward.");
+                warn!("DBError: {e}, Error-UUID: {error_uuid}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
+            },
         }
     }
 
@@ -141,7 +157,12 @@ pub(super) mod get {
                 }
             }
             .into_response(),
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            Err(e) => {
+                let error_uuid = Uuid::new_v4();
+                warn!("Sending internal server error because there was a problem getting a call forward.");
+                warn!("DBError: {e}, Error-UUID: {error_uuid}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
+            },
         }
     }
 
@@ -168,6 +189,7 @@ pub(super) mod post {
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode, Extension};
     use serde::Deserialize;
+    use tracing::warn;
 
     use crate::{
         db::{new_call_forward, update_call_forward, DBError},
@@ -236,11 +258,12 @@ pub(super) mod post {
                 )),
             )
                 .into_response(),
-            Err(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                error_display("Interner Fehler. Bitte Seite neu laden und erneut versuchen."),
-            )
-                .into_response(),
+            Err(e) => {
+                let error_uuid = Uuid::new_v4();
+                warn!("Sending internal server error because there was a problem INSERTing a call forward to the db.");
+                warn!("DBError: {e}, Error-UUID: {error_uuid}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
+            },
         }
     }
 
@@ -303,11 +326,12 @@ pub(super) mod post {
                 error_display("Kontext existiert nicht mehr. Bitte Seite neu laden und erneut versuchen."),
             )
                 .into_response(),
-            Err(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                error_display("Interner Fehler. Bitte Seite neu laden und erneut versuchen."),
-            )
-                .into_response(),
+            Err(e) => {
+                let error_uuid = Uuid::new_v4();
+                warn!("Sending internal server error because there was a problem UPATEing a call forward to the db.");
+                warn!("DBError: {e}, Error-UUID: {error_uuid}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
+            }
         }
     }
 
@@ -494,10 +518,13 @@ pub(super) mod post {
 }
 
 pub(super) mod delete {
+    use super::*;
+
     use std::sync::Arc;
 
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode, Extension};
+    use tracing::warn;
 
     use crate::{db::delete_call_forward_by_id, types::Config};
 
@@ -509,7 +536,12 @@ pub(super) mod delete {
         let fwd_res = delete_call_forward_by_id(&config, fwdid).await;
         match fwd_res {
             Ok(()) => { "".into_response() }.into_response(),
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            Err(e) => {
+                let error_uuid = Uuid::new_v4();
+                warn!("Sending internal server error because there was a problem DELETEing a call forward to the db.");
+                warn!("DBError: {e}, Error-UUID: {error_uuid}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
+            },
         }
     }
 }
