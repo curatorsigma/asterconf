@@ -66,8 +66,9 @@ mod post {
             }
         };
 
-        if auth_session.login(&user).await.is_err() {
+        if let Err(e) = auth_session.login(&user).await {
             warn!("Returning internal server error, because I could not ldap bind a user");
+            warn!("{e}");
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
 
