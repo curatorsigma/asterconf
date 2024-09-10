@@ -475,6 +475,7 @@ dependencies = [
 [[package]]
 name = "blazing_agi"
 version = "0.1.0"
+source = "git+https://github.com/curatorsigma/blazing_agi?branch=testing#d40d7fc7d9b08bca16233e65e50de6c4a85fb2f9"
 dependencies = [
  "async-trait",
  "blazing_agi_macros",
