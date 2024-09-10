@@ -8,6 +8,5 @@ CMD ["asterconf"]
 FROM alpine:latest
 WORKDIR /asterconf
 COPY --from=builder /usr/src/asterconf/target/release/asterconf ./
-# TODO: copy over the config file or mount it or smth?
 CMD ["./asterconf"]
 

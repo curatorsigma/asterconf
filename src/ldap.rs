@@ -1,5 +1,5 @@
 use axum_login::{AuthUser, AuthnBackend, UserId};
-use ldap3::{LdapConnAsync, Scope, SearchEntry};
+use ldap3::{Ldap, LdapConnAsync, Scope, SearchEntry};
 use serde::Deserialize;
 use tracing::Level;
 
@@ -42,9 +42,13 @@ pub(crate) struct UserCredentials {
 
 #[derive(Debug, Clone)]
 pub(crate) struct LDAPBackend {
-    bound_handle: ldap3::Ldap,
+    /// String defining the ldaps server to bind against
+    bind_string: String,
+    /// filter to search for users. Contains {username} which will be replaced
     pub(crate) user_filter: String,
+    /// the base dn under which users lie
     pub(crate) base_dn: String,
+    /// dn and password of the search user
     bind_dn: String,
     bind_pw: String,
 }
@@ -59,19 +63,8 @@ impl LDAPBackend {
         base_dn: &str,
     ) -> Result<Self, LDAPError> {
         let bind_string = format!("ldaps://{hostname}:{port}");
-        let (conn, mut ldap) = LdapConnAsync::new(&bind_string)
-            .await
-            .map_err(|_| LDAPError::CannotConnect)?;
-        // spawn a task that drives the connection until ldap is dropped
-        ldap3::drive!(conn);
-        // LDAP-bind the handle
-        ldap.simple_bind(bind_dn, bind_pw)
-            .await
-            .map_err(|_| LDAPError::CannotBind)?
-            .success()
-            .map_err(|e| LDAPError::UserError(e))?;
         Ok(LDAPBackend {
-            bound_handle: ldap,
+            bind_string,
             user_filter: user_filter.to_string(),
             base_dn: base_dn.to_string(),
             bind_dn: bind_dn.to_string(),
@@ -79,58 +72,30 @@ impl LDAPBackend {
         })
     }
 
-    /// rebind as the search user
-    #[tracing::instrument(skip_all,err,level=Level::TRACE)]
-    pub async fn rebind(&self) -> Result<(), LDAPError> {
-        let mut our_handle = self.bound_handle.clone();
-        our_handle
-            .simple_bind(&self.bind_dn, &self.bind_pw)
+    async fn new_bound_connection(&self) -> Result<Ldap, LDAPError> {
+        let (conn, mut ldap) = LdapConnAsync::new(&self.bind_string)
+            .await
+            .map_err(|_| LDAPError::CannotConnect)?;
+        // spawn a task that drives the connection until ldap is dropped
+        ldap3::drive!(conn);
+        // LDAP-bind the handle
+        ldap.simple_bind(&self.bind_dn, &self.bind_pw)
             .await
             .map_err(|_| LDAPError::CannotBind)?
             .success()
             .map_err(|e| LDAPError::UserError(e))?;
-        Ok(())
-    }
-}
-
-#[async_trait::async_trait]
-impl AuthnBackend for LDAPBackend {
-    type User = User;
-    type Credentials = UserCredentials;
-    type Error = LDAPError;
-    #[tracing::instrument(Level::DEBUG,skip_all,err)]
-    async fn authenticate(&self, creds: UserCredentials) -> Result<Option<User>, LDAPError> {
-        let user = match self.get_user(&creds.username).await? {
-            Some(x) => x,
-            None => {
-                return Ok(None);
-            }
-        };
-        // we now know that the user exists.
-        // try to bind as that user
-        // get a new handle and re-bind
-        let mut rebind_handle = self.bound_handle.clone();
-        let res = rebind_handle
-            .simple_bind(&user.ldap_dn, &creds.password)
-            // on a connection error, return Err(_)
-            .await
-            .map_err(|_| LDAPError::CannotBind)?
-            .success()
-            // if the password is wrong, return Ok(None), else Ok(Some(the-user))
-            .map_or(Ok(None), |_| Ok(Some(user)))?;
-        // we need to rebind as the search user
-        self.rebind().await?;
-        Ok(res)
+        Ok(ldap)
     }
 
-    #[tracing::instrument(Level::DEBUG,skip_all,err)]
-    async fn get_user(&self, id: &UserId<Self>) -> Result<Option<User>, LDAPError> {
-        let mut our_handle = self.bound_handle.clone();
+    /// Bind, get a user (potentially) and DO NOT UNBIND, returning the (still live and bound)
+    /// connection on success
+    async fn get_user_no_unbind(&self, id: &str) -> Result<(Ldap, Option<User>), LDAPError> {
+        let mut our_handle = self.new_bound_connection().await?;
         let (rs, _res) = our_handle
             .search(
                 &self.base_dn,
                 Scope::OneLevel,
-                &self.user_filter.replace("{username}", &id),
+                &self.user_filter.replace("{username}", id),
                 vec!["uid", "userPassword"],
             )
             .await
@@ -138,7 +103,7 @@ impl AuthnBackend for LDAPBackend {
             .success()
             .map_err(|x| LDAPError::UserError(x))?;
         if rs.len() == 0 {
-            return Ok(None);
+            return Ok((our_handle, None));
         }
         if rs.len() != 1 {
             return Err(LDAPError::MultipleUsersWithSameUid(id.to_string()));
@@ -183,7 +148,45 @@ impl AuthnBackend for LDAPBackend {
             username: uid,
             password_hash,
         };
-        Ok(Some(user))
+        Ok((our_handle, Some(user)))
+    }
+}
+
+#[async_trait::async_trait]
+impl AuthnBackend for LDAPBackend {
+    type User = User;
+    type Credentials = UserCredentials;
+    type Error = LDAPError;
+    #[tracing::instrument(Level::DEBUG,skip_all,err)]
+    async fn authenticate(&self, creds: UserCredentials) -> Result<Option<User>, LDAPError> {
+        let (mut handle, user) = self.get_user_no_unbind(&creds.username).await?;
+        let user = match user {
+            Some(x) => x,
+            None => { return Ok(None); }
+        };
+        // we now know that the user exists.
+        // try to bind as that user
+        // get a new handle and re-bind
+        // we need to rebind as the search user
+        let res = handle 
+            .simple_bind(&user.ldap_dn, &creds.password)
+            // on a connection error, return Err(_)
+            .await
+            .map_err(|_| LDAPError::CannotBind)?
+            .success()
+            // if the password is wrong, return Ok(None), else Ok(Some(the-user))
+            .map_or(Ok(None), |_| Ok(Some(user)))?;
+        // unbind to cleanly exit the ldap session
+        handle.unbind().await.map_err(|_| LDAPError::CannotUnbind)?;
+        Ok(res)
+    }
+
+    #[tracing::instrument(Level::DEBUG,skip_all,err)]
+    async fn get_user(&self, id: &UserId<Self>) -> Result<Option<User>, LDAPError> {
+        let (mut handle, res) = self.get_user_no_unbind(id).await?;
+        // unbind to cleanly exit the ldap session
+        handle.unbind().await.map_err(|_| LDAPError::CannotUnbind)?;
+        Ok(res)
     }
 }
 #[derive(Debug)]
@@ -245,8 +248,9 @@ mod ldap_test {
     #[tokio::test]
     #[ignore]
     async fn ldap_bind() {
-        let mut backend = Config::create().await.unwrap().ldap_config;
-        backend.bound_handle.unbind().await.unwrap();
+        let backend = Config::create().await.unwrap().ldap_config;
+        let mut handle = backend.new_bound_connection().await.unwrap();
+        handle.unbind().await.unwrap();
     }
 
     #[tokio::test]
