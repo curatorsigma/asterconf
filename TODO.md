@@ -4,10 +4,8 @@
 # Logging
 ## redact AGI secret
 ## redact LDAP bind pw
-
-# Bugs
-## AGI läuft nicht mehr (wenn in Docker)
-- rausfinden, was überhaupt los ist
+## better tracing for ldap calls (lower some levels to debug)
+## add minimum log level to config??
 
 # Deployment
 ## Docker compose schreiben
