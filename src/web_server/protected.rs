@@ -183,11 +183,10 @@ pub(super) mod post {
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode, Extension};
     use serde::Deserialize;
-    use tracing::{warn, Level};
+    use tracing::{info, warn, Level};
 
     use crate::{
-        db::{new_call_forward, update_call_forward, DBError},
-        types::{CallForward, Config, HasId, NoId}, web_server::InternalServerErrorTemplate,
+        db::{new_call_forward, update_call_forward, DBError}, ldap::User, types::{CallForward, Config, HasId, NoId}, web_server::{login::AuthSession, InternalServerErrorTemplate}
     };
 
     #[derive(Deserialize, Debug)]
@@ -200,6 +199,7 @@ pub(super) mod post {
     #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_new(
         Extension(config): Extension<Arc<Config>>,
+        Extension(session): Extension<AuthSession>,
         axum_extra::extract::Form(forward_form): axum_extra::extract::Form<ForwardFormData>,
     ) -> impl IntoResponse {
         let Some(from_ext) = config.extensions.get(&forward_form.from) else {
@@ -243,6 +243,7 @@ pub(super) mod post {
             Ok(x) => {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
+                info!("{} Inserted a new call forward: {}->{}@{:?}", session.user.expect("route should be protected").username, x.from.extension, x.to.extension, x.in_contexts);
                 SingleCallForwardShowTemplate { fwd: x, contexts }.into_response()
             }
             Err(DBError::OverlappingCallForwards(x, y)) => (
@@ -264,6 +265,7 @@ pub(super) mod post {
     #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_edit(
         Extension(config): Extension<Arc<Config>>,
+        axum::Extension(session): axum::Extension<AuthSession>,
         Path(fwdid): Path<i32>,
         axum_extra::extract::Form(forward_form): axum_extra::extract::Form<ForwardFormData>,
     ) -> impl IntoResponse {
@@ -304,6 +306,7 @@ pub(super) mod post {
             Ok(()) => {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
+                info!("{} Updated a call forward. Is now: {}->{}@{:?}.", session.user.expect("route should be protected").username, forward.from.extension, forward.to.extension, forward.in_contexts);
                 SingleCallForwardShowTemplate {
                     fwd: forward,
                     contexts,
@@ -518,18 +521,22 @@ pub(super) mod delete {
 
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode, Extension};
-    use tracing::{warn, Level};
+    use tracing::{info, warn, Level};
 
-    use crate::{db::delete_call_forward_by_id, types::Config, web_server::InternalServerErrorTemplate};
+    use crate::{db::delete_call_forward_by_id, ldap::User, types::Config, web_server::{login::AuthSession, InternalServerErrorTemplate}};
 
     #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_delete(
         Extension(config): Extension<Arc<Config>>,
+        Extension(session): Extension<AuthSession>,
         Path(fwdid): Path<i32>,
     ) -> impl IntoResponse {
         let fwd_res = delete_call_forward_by_id(&config, fwdid).await;
         match fwd_res {
-            Ok(()) => { "".into_response() }.into_response(),
+            Ok(()) => {
+                info!("{} Deleted a call forward.", session.user.expect("route should be protected").username);
+                "".into_response()
+            },
             Err(e) => {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem DELETEing a call forward to the db.");

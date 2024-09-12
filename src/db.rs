@@ -84,7 +84,7 @@ impl Error for DBError {}
 ///
 /// If there is no conflicting context, this function may create another call forward from the same
 /// Extension that already has another (in other contexts)
-#[tracing::instrument(level=Level::DEBUG,skip(config),err)]
+#[tracing::instrument(level=Level::DEBUG,skip_all,err)]
 pub async fn new_call_forward<'a>(
     config: &Config,
     new_forward: CallForward<'a, NoId>,
@@ -357,7 +357,6 @@ pub async fn update_call_forward<'a>(
     tx.commit()
         .await
         .map_err(|_| DBError::CannotCommitTransaction)?;
-
     Ok(())
 }
 
