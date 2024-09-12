@@ -36,14 +36,14 @@ pub(crate) fn create_login_router() -> Router<()> {
 }
 
 mod post {
-    use tracing::{info, warn};
+    use tracing::{info, warn, Level};
     use uuid::Uuid;
 
     use crate::web_server::InternalServerErrorTemplate;
 
     use super::*;
 
-    #[tracing::instrument(skip_all, ret)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all,ret)]
     pub(super) async fn login(
         mut auth_session: super::AuthSession,
         Form(creds): Form<UserCredentials>,
@@ -86,19 +86,19 @@ mod post {
 }
 
 mod get {
-    use tracing::warn;
+    use tracing::{warn, Level};
     use uuid::Uuid;
 
     use crate::web_server::InternalServerErrorTemplate;
 
     use super::*;
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub async fn login(Query(super::NextUrl { next }): Query<NextUrl>) -> LoginTemplate {
         LoginTemplate { next }
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub async fn logout(mut auth_session: AuthSession) -> impl IntoResponse {
         match auth_session.logout().await {
             Ok(_) => Redirect::to("/login").into_response(),
