@@ -75,7 +75,7 @@ docker run -it --mount type=volume,src=asterconf-etc,dst=/etc/asterconf/ --mount
 - You will need to set `BLAZING_AGI_DIGEST_SECRET`. Consider replicating the example above.
 
 # asterconf does not do what you want?
-`asterconf` is mostly a thin CRUD-App around `https://github.com/curatorsigma/blazing_agi`, which defines the AGI server functionality.
+`asterconf` is mostly a thin CRUD-App around [blazing_agi](https://github.com/curatorsigma/blazing_agi), which defines the AGI server functionality.
 If your use case requires another setup (other DB, different functionality, ...) then you might want to write your own Service (and frontend) around `blazing_agi` which handles the basic AGI functionality (and is available via cargo).
 
 # License
