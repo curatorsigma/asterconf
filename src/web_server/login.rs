@@ -37,6 +37,9 @@ pub(crate) fn create_login_router() -> Router<()> {
 
 mod post {
     use tracing::{info, warn};
+    use uuid::Uuid;
+
+    use crate::web_server::InternalServerErrorTemplate;
 
     use super::*;
 
@@ -60,16 +63,17 @@ mod post {
                 return Redirect::to(&login_url).into_response();
             }
             Err(e) => {
-                warn!("Returning internal server error, because I could not ldap search a user");
-                warn!("{}", e);
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                warn!("Returning internal server error, because I could not ldap search a user: {e}");
+                let error_uuid = Uuid::new_v4();
+                warn!("{error_uuid}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
             }
         };
 
         if let Err(e) = auth_session.login(&user).await {
-            warn!("Returning internal server error, because I could not ldap bind a user");
-            warn!("{e}");
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            warn!("Returning internal server error, because I could not ldap bind a user: {e}");
+            let error_uuid = Uuid::new_v4();
+            return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
         }
 
         if let Some(ref next) = creds.next {
@@ -82,6 +86,11 @@ mod post {
 }
 
 mod get {
+    use tracing::warn;
+    use uuid::Uuid;
+
+    use crate::web_server::InternalServerErrorTemplate;
+
     use super::*;
 
     #[tracing::instrument(skip_all)]
@@ -93,7 +102,12 @@ mod get {
     pub async fn logout(mut auth_session: AuthSession) -> impl IntoResponse {
         match auth_session.logout().await {
             Ok(_) => Redirect::to("/login").into_response(),
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            Err(e) => {
+                warn!("Returning internal server error, because I could not log a user out: {e}");
+                let error_uuid = Uuid::new_v4();
+                warn!("{error_uuid}");
+                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
+            },
         }
     }
 }

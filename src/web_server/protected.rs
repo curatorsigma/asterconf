@@ -17,12 +17,6 @@ fn error_display(s: &str) -> String {
 }
 
 
-#[derive(Template)]
-#[template(path="500.html")]
-struct InternalServerErrorTemplate {
-    error_uuid: Uuid,
-}
-
 pub(crate) fn create_protected_router() -> Router {
     Router::new()
         .route("/", get(self::get::root))
@@ -59,7 +53,7 @@ pub(super) mod get {
     use crate::{
         db::{get_all_call_forwards, get_call_forward_by_id},
         types::{CallForward, Context, HasId},
-        web_server::login::AuthSession,
+        web_server::{login::AuthSession, InternalServerErrorTemplate},
     };
 
     use super::*;
@@ -193,7 +187,7 @@ pub(super) mod post {
 
     use crate::{
         db::{new_call_forward, update_call_forward, DBError},
-        types::{CallForward, Config, HasId, NoId},
+        types::{CallForward, Config, HasId, NoId}, web_server::InternalServerErrorTemplate,
     };
 
     #[derive(Deserialize, Debug)]
@@ -526,7 +520,7 @@ pub(super) mod delete {
     use axum::{extract::Path, http::StatusCode, Extension};
     use tracing::warn;
 
-    use crate::{db::delete_call_forward_by_id, types::Config};
+    use crate::{db::delete_call_forward_by_id, types::Config, web_server::InternalServerErrorTemplate};
 
     #[tracing::instrument(skip_all)]
     pub(super) async fn single_call_forward_delete(

@@ -1,3 +1,4 @@
+use askama::Template;
 use axum_login::{
     login_required,
     tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer},
@@ -7,6 +8,7 @@ use sqlx::SqlitePool;
 use time::Duration;
 use tower_sessions::cookie::Key;
 use tower_sessions_sqlx_store::SqliteStore;
+use uuid::Uuid;
 
 use std::{str::FromStr, sync::Arc};
 
@@ -23,6 +25,13 @@ use tracing::{event, Level};
 use crate::{ldap::LDAPBackend, types::Config};
 pub(crate) mod login;
 mod protected;
+
+
+#[derive(Template)]
+#[template(path="500.html")]
+struct InternalServerErrorTemplate {
+    error_uuid: Uuid,
+}
 
 /// App State that simply holds a user session store
 pub struct Webserver {
