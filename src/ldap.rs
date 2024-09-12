@@ -40,7 +40,7 @@ pub(crate) struct UserCredentials {
     pub(crate) next: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct LDAPBackend {
     /// String defining the ldaps server to bind against
     bind_string: String,
@@ -51,6 +51,17 @@ pub(crate) struct LDAPBackend {
     /// dn and password of the search user
     bind_dn: String,
     bind_pw: String,
+}
+impl std::fmt::Debug for LDAPBackend {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("LDAPBackend")
+            .field("bind_string", &self.bind_string)
+            .field("bind_dn", &self.bind_dn)
+            .field("base_dn", &self.base_dn)
+            .field("user_filter", &self.user_filter)
+            .field("bind_pw", &"[redacted]")
+            .finish()
+    }
 }
 impl LDAPBackend {
     #[tracing::instrument(level=Level::DEBUG,skip_all,err)]
