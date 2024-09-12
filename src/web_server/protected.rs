@@ -61,7 +61,7 @@ pub(super) mod get {
     use askama::Template;
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode};
-    use tracing::warn;
+    use tracing::{warn, Level};
     use uuid::Uuid;
 
     #[derive(Template)]
@@ -105,7 +105,7 @@ pub(super) mod get {
         }
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward(
         Extension(config): Extension<Arc<Config>>,
         Path(fwdid): Path<i32>,
@@ -134,7 +134,7 @@ pub(super) mod get {
         contexts: Vec<&'a Context>,
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_edit(
         Extension(config): Extension<Arc<Config>>,
         Path(fwdid): Path<i32>,
@@ -160,7 +160,7 @@ pub(super) mod get {
         }
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_new(
         Extension(config): Extension<Arc<Config>>,
     ) -> impl IntoResponse {
@@ -183,7 +183,7 @@ pub(super) mod post {
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode, Extension};
     use serde::Deserialize;
-    use tracing::warn;
+    use tracing::{warn, Level};
 
     use crate::{
         db::{new_call_forward, update_call_forward, DBError},
@@ -197,7 +197,7 @@ pub(super) mod post {
         ctx_checkboxes: Option<Vec<String>>,
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_new(
         Extension(config): Extension<Arc<Config>>,
         axum_extra::extract::Form(forward_form): axum_extra::extract::Form<ForwardFormData>,
@@ -261,7 +261,7 @@ pub(super) mod post {
         }
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_edit(
         Extension(config): Extension<Arc<Config>>,
         Path(fwdid): Path<i32>,
@@ -403,7 +403,7 @@ pub(super) mod post {
         target: String,
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn from_search_extension(
         Extension(config): Extension<Arc<Config>>,
         axum_extra::extract::Form(search_form): axum_extra::extract::Form<FromExtensionSearchForm>,
@@ -430,7 +430,7 @@ pub(super) mod post {
         }
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn to_search_extension(
         Extension(config): Extension<Arc<Config>>,
         axum_extra::extract::Form(search_form): axum_extra::extract::Form<ToExtensionSearchForm>,
@@ -518,11 +518,11 @@ pub(super) mod delete {
 
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode, Extension};
-    use tracing::warn;
+    use tracing::{warn, Level};
 
     use crate::{db::delete_call_forward_by_id, types::Config, web_server::InternalServerErrorTemplate};
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_delete(
         Extension(config): Extension<Arc<Config>>,
         Path(fwdid): Path<i32>,
