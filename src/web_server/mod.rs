@@ -30,7 +30,10 @@ pub struct Webserver {
 }
 impl Webserver {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let db = SqlitePool::connect(":memory:").await?;
+        let connect_options = sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(".session_data.db")
+            .create_if_missing(true);
+        let db = SqlitePool::connect_with(connect_options).await?;
         sqlx::migrate!().run(&db).await?;
 
         Ok(Self { db })
