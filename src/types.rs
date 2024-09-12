@@ -230,7 +230,7 @@ impl std::fmt::Debug for LDAPConfigData {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Config {
     // extension name to Extension
     pub(crate) extensions: HashMap<String, Extension>,
@@ -252,6 +252,22 @@ pub struct Config {
     /// config for the TLS layer
     pub(crate) rustls_config: RustlsConfig,
     pub(crate) ldap_config: crate::ldap::LDAPBackend,
+}
+impl std::fmt::Debug for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("Config")
+            .field("extensions", &self.extensions)
+            .field("contexts", &self.contexts)
+            .field("web_bind_string", &self.web_bind_string)
+            .field("web_bind_port", &self.web_bind_port)
+            .field("web_bind_string_tls", &self.web_bind_string_tls)
+            .field("web_bind_port_tls", &self.web_bind_port_tls)
+            .field("agi_bind_string", &self.agi_bind_string)
+            .field("agi_digest_secret", &"[redacted]")
+            .field("rustls_config", &self.rustls_config)
+            .field("ldap_config", &self.ldap_config)
+            .finish()
+    }
 }
 impl Config {
     // this will never be called inside the actual application (only during setup)
