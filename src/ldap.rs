@@ -1,7 +1,42 @@
 use axum_login::{AuthUser, AuthnBackend, UserId};
 use ldap3::{Ldap, LdapConnAsync, Scope, SearchEntry};
 use serde::Deserialize;
-use tracing::Level;
+use tracing::{warn, Level};
+
+/// escape parameter such that it may be used in a search filter
+/// uses RFC2254 Section 4 and RFC4514 Section 2.4
+///
+/// NOTE: ldap3 also has ldap3::ldap_escape,
+/// but that does not escape potentially dangerous characters, and only
+/// does the escape for the RFC2254-mandated chars: ()*\NUL
+fn escape_ldap_search_filter_parameter(parameter: &str) -> String {
+    let mut res = String::new();
+    for c in parameter.chars() {
+        match c {
+            // mandated
+            '(' => { res.push_str("\\28") },
+            ')' => { res.push_str("\\29") },
+            '*' => { res.push_str("\\2a") },
+            '\\' => { res.push_str("\\5c") },
+            '\0' => { res.push_str("\\00") },
+            // for safety against LDAP injections - these are
+            // the characters to be encoded by RFC4514
+            '"' => { res.push_str("\\22") },
+            '#' => { res.push_str("\\23") },
+            '+' => { res.push_str("\\2b") },
+            ',' => { res.push_str("\\2c") },
+            ';' => { res.push_str("\\3b") },
+            '<' => { res.push_str("\\3c") },
+            '=' => { res.push_str("\\3d") },
+            '>' => { res.push_str("\\3e") },
+            '|' => { res.push_str("\\7c") },
+            ' ' => { res.push_str("\\20") },
+            x => { res.push(x) },
+        };
+    };
+    return res;
+}
+
 
 /// Functions for accessing LDAP
 #[derive(Clone)]
@@ -106,7 +141,7 @@ impl LDAPBackend {
             .search(
                 &self.base_dn,
                 Scope::OneLevel,
-                &self.user_filter.replace("{username}", id),
+                &self.user_filter.replace("{username}", &escape_ldap_search_filter_parameter(id)),
                 vec!["uid", "userPassword"],
             )
             .await
@@ -173,7 +208,10 @@ impl AuthnBackend for LDAPBackend {
         let (mut handle, user) = self.get_user_no_unbind(&creds.username).await?;
         let user = match user {
             Some(x) => x,
-            None => { return Ok(None); }
+            None => {
+                warn!("User {} tried logging in but was not found via the search filter {}", creds.username, self.user_filter);
+                return Ok(None);
+            }
         };
         // we now know that the user exists.
         // try to bind as that user
