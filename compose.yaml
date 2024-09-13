@@ -1,0 +1,21 @@
+services:
+  asterconf:
+    build: .
+    ports:
+    - 8080:8080
+    - 8443:8443
+    - 4573:4573
+    volumes:
+    - type: bind
+      source: /etc/asterconf/config.yaml
+      target: /etc/asterconf/config.yaml
+      read_only: true
+    - type: bind
+      source: /etc/ssl/asterconf/
+      target: /etc/ssl/asterconf/
+      read_only: true
+    - var-log:/var/log/asterconf
+
+volumes:
+  var-log:
+

@@ -49,25 +49,41 @@ Users are authenticated via LDAP to `asterconf`. You will need a running LDAP se
     - I highly recommend you setup LDAPS with publically trusted certificates, which you can e.g. do with Let's encrypt and reverse-proxying via nginx.
 
 ## Setup asterconf
-It is recommended to run `asterconf` via docker:
-- build the provided `Dockerfile`
-- create docker volumes to store the following external files `asterconf` needs:
-    - `/etc/asterconf/config.yaml`
-    - TLS key/cert files (location can be configured in config)
-    - `/var/log/asterconf/`
-- create the files in these volumes
-- run the container (attaching the volumes):
-```bash
+It is recommended to run `asterconf` via docker-compose:
+```sh
 git clone https://github.com/curatorsigma/asterconf
 cd asterconf
-docker build -t asterconf . -f Dockerfile
-docker volume add asterconf-etc
-docker volume add asterconf-etc-ssl
-docker volume add asterconf-var-log
-cp config.example.yaml /var/lib/docker/volumes/asterconf-etc/_data/
+
+mkdir -p /etc/asterconf
+cp config.example.yaml /etc/asterconf/config.yaml
 # now make sure to change the required configuration parameters
-openssl req -new -x509 -days 365 -nodes -text -out /var/lib/docker/volumes/asterconf-etc-ssl/asterconf.cert -keyout /var/lib/docker/volumes/asterconf-etc-ssl/asterconf.key -subj "/CN=asterconf.example.com"
-docker run -it --mount type=volume,src=asterconf-etc,dst=/etc/asterconf/ --mount type=volume,src=asterconf-etc-ssl,dst=/etc/ssl/asterconf/ --mount type=volume,src=asterconf-var-log,dst=/var/log/asterconf asterconf ./asterconf
+
+mkdir -p /etc/ssl/asterconf
+# consider getting a properly signed cert from your internal or an external pki
+openssl req -new -x509 -days 365 -nodes -text -out /etc/ssl/asterconf/asterconf.cert -keyout /etc/ssl/asterconf/asterconf.key -subj "/CN=asterconf.example.com"
+
+docker compose up
+```
+
+You can also run the application directly, if you want (or want to integrate into some other IaC):
+```sh
+git clone https://github.com/curatorsigma/asterconf
+cd asterconf
+cargo build --release
+
+mkdir -p /whatever/path/you/want/
+cp ./target/release/asterconf /whatever/path/you/want/
+
+mkdir -p /etc/asterconf
+cp config.example.yaml /etc/asterconf/config.yaml
+# now make sure to change the required configuration parameters
+
+mkdir -p /etc/ssl/asterconf
+# consider getting a properly signed cert from your internal or an external pki
+openssl req -new -x509 -days 365 -nodes -text -out /etc/ssl/asterconf/asterconf.cert -keyout /etc/ssl/asterconf/asterconf.key -subj "/CN=asterconf.example.com"
+
+# or run via systemd-unit file or whatever you want
+/whatever/path/you/want/asterconf
 ```
 
 ## Make changes to asterisk config

@@ -4,6 +4,4 @@
 # Logging
 ## add minimum log level to config??
 
-# Deployment
-## Docker compose schreiben
 

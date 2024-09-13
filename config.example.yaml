@@ -18,8 +18,8 @@ db_port: 5432
 db_host: "postgres.example.com"
 db_database: "asterconf"
 
-tls_cert_file: "TODO"
-tls_key_file: "TODO"
+tls_cert_file: "/etc/ssl/asterconf/asterconf.cert"
+tls_key_file: "/etc/ssl/asterconf/asterconf.key"
 
 web_bind_addr: "127.0.0.1"
 web_bind_port: 8080
