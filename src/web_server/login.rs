@@ -59,7 +59,7 @@ mod post {
                     login_url = format!("{}?next={}", login_url, next);
                 };
 
-                warn!("Returning redirect, because the user supplied the wrong password");
+                warn!("Returning redirect, because the user supplied the wrong password or was not found via the user filter.");
                 return Redirect::to(&login_url).into_response();
             }
             Err(e) => {
