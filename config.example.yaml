@@ -1,17 +1,24 @@
 # list of extensions that you want to give a human readable name
-# all extensions may be used; the value in extension is what asterisk will actually call
+# Calls may be forwarded TO (but not FROM) extensions, that are not defined here.
+# I suggest you specify all internal extensions you may want to forward here
+# the value in `extension` is what will be set in the CALL_FORWARDED_TO variable in the calling asterisk
 extensions:
+  # human readable name (displayed in GUI)
 - name: "Jon Doe"
+  # actual extension (displayed in GUI and set in asterisk / saved in database)
   extension: "702"
 
 # list of contexts you want to be able to specify for call forwards
 # contexts that are not defined here can NOT be used to call forward in
 contexts:
+  # human readable name (displayed in GUI)
 - display_name: "Extern"
+  # name of the context in asterisk
   asterisk_name: "from_external"
 - display_name: "Internal"
   asterisk_name: "from_internal"
 
+# remember to add the correct entry to pg_hba.conf on your database host
 db_user: "asterconf"
 db_password: "NOT_THE_PASSWORD"
 db_port: 5432
@@ -27,6 +34,10 @@ web_bind_port_tls: 8443
 
 agi_bind_addr: "127.0.0.1"
 agi_bind_port: 4573
+# this secret must be set in asterisk via
+# ```extensions.conf
+# same => n,Set(BLAZING_AGI_DIGEST_SECRET=NOT_THE_SECRET)
+# ```
 agi_digest_secret: "NOT_THE_SECRET"
 
 # config for LDAP.
@@ -36,6 +47,14 @@ ldap:
   # will bind to: ldaps://{hostname}:{port}
   hostname: "ldaps.example.com"
   port: 636
+  # The process to login a user is the following:
+  # - `bind_user` binds with `bind_password` agains the server
+  # - ldapsearch against `base_dn` with `user_filter` where {username} is exchanged for the user supplied name
+  # - if not found => failure
+  # - if found:
+  #   - {username} binds with the supplied password against the server
+  #   - if fail => fail
+  #   - if success => logged in
   bind_user: "uid=asterconf_search,cn=users,dc=example,dc=com"
   bind_password: "NOT_THE_PASSWORD"
   base_dn: "dc=example,dc=com"

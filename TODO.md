@@ -4,4 +4,3 @@
 # Logging
 ## add minimum log level to config??
 
-
