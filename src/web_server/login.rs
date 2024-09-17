@@ -3,30 +3,18 @@ use askama_axum::Template;
 // TODO: build a router, the backend and the routes for login
 // return the router up to mod.rs
 use axum::{
-    extract::Query,
     http::StatusCode,
     response::{IntoResponse, Redirect},
     routing::{get, post},
     Form, Router,
 };
-use serde::Deserialize;
-
 use crate::ldap::{LDAPBackend, UserCredentials};
 
 pub type AuthSession = axum_login::AuthSession<LDAPBackend>;
 
 #[derive(Template)]
 #[template(path = "login.html")]
-pub struct LoginTemplate {
-    next: Option<String>,
-}
-
-// This allows us to extract the "next" field from the query string. We use this
-// to redirect after log in.
-#[derive(Debug, Deserialize)]
-pub struct NextUrl {
-    next: Option<String>,
-}
+pub struct LoginTemplate {}
 
 pub(crate) fn create_login_router() -> Router<()> {
     Router::new()
@@ -54,11 +42,7 @@ mod post {
                 user
             }
             Ok(None) => {
-                let mut login_url = "/login".to_string();
-                if let Some(next) = creds.next {
-                    login_url = format!("{}?next={}", login_url, next);
-                };
-
+                let login_url = "/login".to_string();
                 warn!("Returning redirect, because the user supplied the wrong password or was not found via the user filter.");
                 return Redirect::to(&login_url).into_response();
             }
@@ -75,13 +59,7 @@ mod post {
             let error_uuid = Uuid::new_v4();
             return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
         }
-
-        if let Some(ref next) = creds.next {
-            Redirect::to(next)
-        } else {
-            Redirect::to("/")
-        }
-        .into_response()
+        Redirect::to("/").into_response()
     }
 }
 
@@ -94,8 +72,8 @@ mod get {
     use super::*;
 
     #[tracing::instrument(level=Level::DEBUG,skip_all)]
-    pub async fn login(Query(super::NextUrl { next }): Query<NextUrl>) -> LoginTemplate {
-        LoginTemplate { next }
+    pub async fn login() -> LoginTemplate {
+        LoginTemplate {}
     }
 
     #[tracing::instrument(level=Level::DEBUG,skip_all)]

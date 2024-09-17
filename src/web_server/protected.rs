@@ -186,7 +186,7 @@ pub(super) mod post {
     use tracing::{info, warn, Level};
 
     use crate::{
-        db::{new_call_forward, update_call_forward, DBError}, ldap::User, types::{CallForward, Config, HasId, NoId}, web_server::{login::AuthSession, InternalServerErrorTemplate}
+        db::{new_call_forward, update_call_forward, DBError}, types::{CallForward, Config, HasId, NoId}, web_server::{login::AuthSession, InternalServerErrorTemplate}
     };
 
     #[derive(Deserialize, Debug)]
@@ -313,7 +313,7 @@ pub(super) mod post {
                 }
                 .into_response()
             }
-            Err(DBError::CannotSelectCallForward(fwdid)) => (
+            Err(DBError::CannotSelectCallForward(_)) => (
                 StatusCode::BAD_REQUEST,
                 error_display("Diese Weiterleitung existiert nicht mehr. Bitte Seite neu laden und erneut versuchen."),
             )
@@ -523,7 +523,7 @@ pub(super) mod delete {
     use axum::{extract::Path, http::StatusCode, Extension};
     use tracing::{info, warn, Level};
 
-    use crate::{db::delete_call_forward_by_id, ldap::User, types::Config, web_server::{login::AuthSession, InternalServerErrorTemplate}};
+    use crate::{db::delete_call_forward_by_id, types::Config, web_server::{login::AuthSession, InternalServerErrorTemplate}};
 
     #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_delete(

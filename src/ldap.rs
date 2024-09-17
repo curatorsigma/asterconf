@@ -71,8 +71,6 @@ impl AuthUser for User {
 pub(crate) struct UserCredentials {
     pub username: String,
     pub password: String,
-    // a hack: we add the redirect url we want to set here
-    pub(crate) next: Option<String>,
 }
 
 #[derive(Clone)]
