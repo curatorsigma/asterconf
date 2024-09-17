@@ -26,9 +26,8 @@ use crate::{ldap::LDAPBackend, types::Config};
 pub(crate) mod login;
 mod protected;
 
-
 #[derive(Template)]
-#[template(path="500.html")]
+#[template(path = "500.html")]
 struct InternalServerErrorTemplate {
     error_uuid: Uuid,
 }

@@ -278,7 +278,10 @@ impl Config {
         let f = match File::open(config_path) {
             Ok(x) => x,
             Err(e) => {
-                event!(Level::ERROR, "config file /etc/asterconf/config.yaml not readable: {e}");
+                event!(
+                    Level::ERROR,
+                    "config file /etc/asterconf/config.yaml not readable: {e}"
+                );
                 return Err(Box::new(e));
             }
         };
@@ -329,17 +332,19 @@ impl Config {
             "{}:{}",
             config_data.agi_bind_addr, config_data.agi_bind_port
         );
-        let rustls_config = match RustlsConfig::from_pem_file(
-                config_data.tls_cert_file,
-                config_data.tls_key_file,
-            )
-            .await {
-            Ok(x) => x,
-            Err(e) => {
-                event!(Level::ERROR, "There was a problem reading the TLS cert/key: {e}");
-                return Err(Box::new(e));
-            }
-        };
+        let rustls_config =
+            match RustlsConfig::from_pem_file(config_data.tls_cert_file, config_data.tls_key_file)
+                .await
+            {
+                Ok(x) => x,
+                Err(e) => {
+                    event!(
+                        Level::ERROR,
+                        "There was a problem reading the TLS cert/key: {e}"
+                    );
+                    return Err(Box::new(e));
+                }
+            };
         let ldap_config = match crate::ldap::LDAPBackend::new(
             &config_data.ldap.hostname,
             config_data.ldap.port,
@@ -348,10 +353,14 @@ impl Config {
             &config_data.ldap.user_filter,
             &config_data.ldap.base_dn,
         )
-        .await {
+        .await
+        {
             Ok(x) => x,
             Err(e) => {
-                event!(Level::ERROR, "LDAP connection could not be established: {e}");
+                event!(
+                    Level::ERROR,
+                    "LDAP connection could not be established: {e}"
+                );
                 return Err(Box::new(e));
             }
         };

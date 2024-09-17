@@ -1,3 +1,4 @@
+use crate::ldap::{LDAPBackend, UserCredentials};
 use askama_axum::Template;
 /// All the routes needed to do auth and the backend for that
 // TODO: build a router, the backend and the routes for login
@@ -8,7 +9,6 @@ use axum::{
     routing::{get, post},
     Form, Router,
 };
-use crate::ldap::{LDAPBackend, UserCredentials};
 
 pub type AuthSession = axum_login::AuthSession<LDAPBackend>;
 
@@ -46,17 +46,27 @@ mod post {
                 return Redirect::to("/login").into_response();
             }
             Err(e) => {
-                warn!("Returning internal server error, because I could not ldap search a user: {e}");
+                warn!(
+                    "Returning internal server error, because I could not ldap search a user: {e}"
+                );
                 let error_uuid = Uuid::new_v4();
                 warn!("{error_uuid}");
-                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
             }
         };
 
         if let Err(e) = auth_session.login(&user).await {
             warn!("Returning internal server error, because I could not ldap bind a user: {e}");
             let error_uuid = Uuid::new_v4();
-            return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                InternalServerErrorTemplate { error_uuid },
+            )
+                .into_response();
         }
         Redirect::to("/").into_response()
     }
@@ -83,8 +93,12 @@ mod get {
                 warn!("Returning internal server error, because I could not log a user out: {e}");
                 let error_uuid = Uuid::new_v4();
                 warn!("{error_uuid}");
-                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
-            },
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
+            }
         }
     }
 }

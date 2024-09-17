@@ -16,7 +16,6 @@ fn error_display(s: &str) -> String {
     format!("<div class=\"text-red-500 flex justify-center\" id=\"error_display\" _=\"on htmx:beforeSend from elsewhere set my innerHTML to ''\">{}</div>", s)
 }
 
-
 pub(crate) fn create_protected_router() -> Router {
     Router::new()
         .route("/", get(self::get::root))
@@ -81,7 +80,11 @@ pub(super) mod get {
         } else {
             let error_uuid = Uuid::new_v4();
             warn!("Sending internal server error because there is no user in the auth session. uuid: {error_uuid}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                InternalServerErrorTemplate { error_uuid },
+            )
+                .into_response();
         };
         let call_forward_res = get_all_call_forwards(&config).await;
         match call_forward_res {
@@ -100,8 +103,12 @@ pub(super) mod get {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem getting call forwards.");
                 warn!("DBError: {e} Error-UUID: {error_uuid}");
-                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
-            },
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
+            }
         }
     }
 
@@ -122,8 +129,12 @@ pub(super) mod get {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem getting a call forward.");
                 warn!("DBError: {e}, Error-UUID: {error_uuid}");
-                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
-            },
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
+            }
         }
     }
 
@@ -155,8 +166,12 @@ pub(super) mod get {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem getting a call forward.");
                 warn!("DBError: {e}, Error-UUID: {error_uuid}");
-                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
-            },
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
+            }
         }
     }
 
@@ -186,7 +201,9 @@ pub(super) mod post {
     use tracing::{info, warn, Level};
 
     use crate::{
-        db::{new_call_forward, update_call_forward, DBError}, types::{CallForward, Config, HasId, NoId}, web_server::{login::AuthSession, InternalServerErrorTemplate}
+        db::{new_call_forward, update_call_forward, DBError},
+        types::{CallForward, Config, HasId, NoId},
+        web_server::{login::AuthSession, InternalServerErrorTemplate},
     };
 
     #[derive(Deserialize, Debug)]
@@ -288,7 +305,10 @@ pub(super) mod post {
         };
         for ctx in ctx_checkboxes {
             let Some(this_ctx) = config.contexts.get(&ctx) else {
-                return (StatusCode::BAD_REQUEST, error_display(&format!("Kontext {ctx} konnte nicht gefunden werden.")))
+                return (
+                    StatusCode::BAD_REQUEST,
+                    error_display(&format!("Kontext {ctx} konnte nicht gefunden werden.")),
+                )
                     .into_response();
             };
             contexts.push(this_ctx);
@@ -523,7 +543,11 @@ pub(super) mod delete {
     use axum::{extract::Path, http::StatusCode, Extension};
     use tracing::{info, warn, Level};
 
-    use crate::{db::delete_call_forward_by_id, types::Config, web_server::{login::AuthSession, InternalServerErrorTemplate}};
+    use crate::{
+        db::delete_call_forward_by_id,
+        types::Config,
+        web_server::{login::AuthSession, InternalServerErrorTemplate},
+    };
 
     #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_delete(
@@ -534,15 +558,22 @@ pub(super) mod delete {
         let fwd_res = delete_call_forward_by_id(&config, fwdid).await;
         match fwd_res {
             Ok(()) => {
-                info!("{} Deleted a call forward.", session.user.expect("route should be protected").username);
+                info!(
+                    "{} Deleted a call forward.",
+                    session.user.expect("route should be protected").username
+                );
                 "".into_response()
-            },
+            }
             Err(e) => {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem DELETEing a call forward to the db.");
                 warn!("DBError: {e}, Error-UUID: {error_uuid}");
-                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
-            },
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
+            }
         }
     }
 }

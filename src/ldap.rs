@@ -14,29 +14,28 @@ fn escape_ldap_search_filter_parameter(parameter: &str) -> String {
     for c in parameter.chars() {
         match c {
             // mandated
-            '(' => { res.push_str("\\28") },
-            ')' => { res.push_str("\\29") },
-            '*' => { res.push_str("\\2a") },
-            '\\' => { res.push_str("\\5c") },
-            '\0' => { res.push_str("\\00") },
+            '(' => res.push_str("\\28"),
+            ')' => res.push_str("\\29"),
+            '*' => res.push_str("\\2a"),
+            '\\' => res.push_str("\\5c"),
+            '\0' => res.push_str("\\00"),
             // for safety against LDAP injections - these are
             // the characters to be encoded by RFC4514
-            '"' => { res.push_str("\\22") },
-            '#' => { res.push_str("\\23") },
-            '+' => { res.push_str("\\2b") },
-            ',' => { res.push_str("\\2c") },
-            ';' => { res.push_str("\\3b") },
-            '<' => { res.push_str("\\3c") },
-            '=' => { res.push_str("\\3d") },
-            '>' => { res.push_str("\\3e") },
-            '|' => { res.push_str("\\7c") },
-            ' ' => { res.push_str("\\20") },
-            x => { res.push(x) },
+            '"' => res.push_str("\\22"),
+            '#' => res.push_str("\\23"),
+            '+' => res.push_str("\\2b"),
+            ',' => res.push_str("\\2c"),
+            ';' => res.push_str("\\3b"),
+            '<' => res.push_str("\\3c"),
+            '=' => res.push_str("\\3d"),
+            '>' => res.push_str("\\3e"),
+            '|' => res.push_str("\\7c"),
+            ' ' => res.push_str("\\20"),
+            x => res.push(x),
         };
-    };
+    }
     return res;
 }
-
 
 /// Functions for accessing LDAP
 #[derive(Clone)]
@@ -139,7 +138,9 @@ impl LDAPBackend {
             .search(
                 &self.base_dn,
                 Scope::OneLevel,
-                &self.user_filter.replace("{username}", &escape_ldap_search_filter_parameter(id)),
+                &self
+                    .user_filter
+                    .replace("{username}", &escape_ldap_search_filter_parameter(id)),
                 vec!["uid", "userPassword"],
             )
             .await
@@ -207,7 +208,10 @@ impl AuthnBackend for LDAPBackend {
         let user = match user {
             Some(x) => x,
             None => {
-                warn!("User {} tried logging in but was not found via the search filter {}", creds.username, self.user_filter);
+                warn!(
+                    "User {} tried logging in but was not found via the search filter {}",
+                    creds.username, self.user_filter
+                );
                 return Ok(None);
             }
         };
@@ -215,7 +219,7 @@ impl AuthnBackend for LDAPBackend {
         // try to bind as that user
         // get a new handle and re-bind
         // we need to rebind as the search user
-        let res = handle 
+        let res = handle
             .simple_bind(&user.ldap_dn, &creds.password)
             // on a connection error, return Err(_)
             .await
