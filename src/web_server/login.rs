@@ -42,9 +42,8 @@ mod post {
                 user
             }
             Ok(None) => {
-                let login_url = "/login".to_string();
                 warn!("Returning redirect, because the user supplied the wrong password or was not found via the user filter.");
-                return Redirect::to(&login_url).into_response();
+                return Redirect::to("/login").into_response();
             }
             Err(e) => {
                 warn!("Returning internal server error, because I could not ldap search a user: {e}");

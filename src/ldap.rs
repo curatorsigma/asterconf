@@ -328,7 +328,6 @@ mod ldap_test {
             .authenticate(UserCredentials {
                 username: "testuser".to_string(),
                 password: std::env::var("ASTERCONF_TESTUSER_PASSWORD").unwrap(),
-                next: Some("/".to_string()),
             })
             .await
             .unwrap();
@@ -343,7 +342,6 @@ mod ldap_test {
             .authenticate(UserCredentials {
                 username: "testuser".to_string(),
                 password: "THIS IS NOT THE PASSWORD".to_string(),
-                next: Some("/".to_string()),
             })
             .await
             .unwrap();
@@ -358,7 +356,6 @@ mod ldap_test {
             .authenticate(UserCredentials {
                 username: "testuser".to_string(),
                 password: "THIS IS NOT THE PASSWORD".to_string(),
-                next: Some("/".to_string()),
             })
             .await
             .unwrap();
@@ -367,7 +364,6 @@ mod ldap_test {
             .authenticate(UserCredentials {
                 username: "testuser".to_string(),
                 password: "THIS IS NOT THE PASSWORD".to_string(),
-                next: Some("/".to_string()),
             })
             .await
             .unwrap();
