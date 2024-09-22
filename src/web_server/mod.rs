@@ -116,27 +116,27 @@ impl Webserver {
     }
 }
 
-async fn redirect_http_to_https(config: Arc<Config>) {
-    fn make_https(
-        host: String,
-        uri: Uri,
-        http_port: u16,
-        https_port: u16,
-    ) -> Result<Uri, Box<dyn std::error::Error>> {
-        let mut parts = uri.into_parts();
+fn make_https(
+    host: String,
+    uri: Uri,
+    http_port: u16,
+    https_port: u16,
+) -> Result<Uri, Box<dyn std::error::Error>> {
+    let mut parts = uri.into_parts();
 
-        parts.scheme = Some(axum::http::uri::Scheme::HTTPS);
+    parts.scheme = Some(axum::http::uri::Scheme::HTTPS);
 
-        if parts.path_and_query.is_none() {
-            parts.path_and_query = Some("/".parse().unwrap());
-        }
-
-        let https_host = host.replace(&http_port.to_string(), &https_port.to_string());
-        parts.authority = Some(https_host.parse()?);
-
-        Ok(Uri::from_parts(parts)?)
+    if parts.path_and_query.is_none() {
+        parts.path_and_query = Some("/".parse().expect("Path should be statically save."));
     }
 
+    let https_host = host.replace(&http_port.to_string(), &https_port.to_string());
+    parts.authority = Some(https_host.parse()?);
+
+    Ok(Uri::from_parts(parts)?)
+}
+
+async fn redirect_http_to_https(config: Arc<Config>) {
     let redir_web_bind_port = config.web_bind_port;
     let redir_web_bind_port_tls = config.web_bind_port_tls;
     let redirect = move |Host(host): Host, uri: Uri| async move {
@@ -149,16 +149,22 @@ async fn redirect_http_to_https(config: Arc<Config>) {
         }
     };
 
-    let listener = tokio::net::TcpListener::bind(config.web_bind_string.clone())
-        .await
-        .unwrap();
+    let listener = match tokio::net::TcpListener::bind(config.web_bind_string.clone()).await {
+        Ok(x) => x,
+        Err(e) => {
+            tracing::error!("Could not bind a TcP socket for the http -> https redirect service: {e}");
+            panic!("Unable to start http -> https server. Unrecoverable.");
+        },
+    };
     tracing::info!(
         "Webserver (HTTP) listening on {}",
-        listener.local_addr().unwrap()
+        listener.local_addr().expect("Local address of bound http -> https should be readable.")
     );
-    axum::serve(listener, redirect.into_make_service())
-        .await
-        .unwrap();
+    if let Err(e) = axum::serve(listener, redirect.into_make_service())
+        .await {
+        tracing::error!("Could not start the http -> https redirect server: {e}");
+        panic!("Unable to start http -> https server. Unrecoverable.");
+    };
 }
 
 async fn htmx_script() -> impl IntoResponse {

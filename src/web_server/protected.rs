@@ -103,11 +103,11 @@ pub(super) mod get {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem getting call forwards.");
                 warn!("DBError: {e} Error-UUID: {error_uuid}");
-                return (
+                (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     InternalServerErrorTemplate { error_uuid },
                 )
-                    .into_response();
+                    .into_response()
             }
         }
     }
@@ -373,13 +373,13 @@ pub(super) mod post {
         let mut pos_vec = vec![];
         for char in our_search.chars() {
             let next_match = match last_used_idx {
-                Some(idx) => (idx as usize + 1) + our_term[idx + 1..].find(char)?,
+                Some(idx) => (idx + 1) + our_term[idx + 1..].find(char)?,
                 None => our_term[0..].find(char)?,
             };
             pos_vec.push(next_match);
             last_used_idx = Some(next_match);
         }
-        return Some(pos_vec);
+        Some(pos_vec)
     }
 
     fn mark_string_at_positions(s: &str, positions: Vec<usize>) -> Option<String> {
@@ -416,7 +416,7 @@ pub(super) mod post {
                 res.push_str(&s[last_idx + 1..]);
             }
         };
-        return Some(res);
+        Some(res)
     }
 
     #[derive(Template)]

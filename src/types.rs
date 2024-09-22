@@ -135,11 +135,11 @@ impl<'a> CallForward<'a, NoId> {
         to: String,
         in_contexts: Vec<String>,
     ) -> Result<CallForward<'a, NoId>, DBError> {
-        let from_as_exten = Extension::create_from_name(&config, from);
-        let to_as_exten = Extension::create_from_name(&config, to);
+        let from_as_exten = Extension::create_from_name(config, from);
+        let to_as_exten = Extension::create_from_name(config, to);
         let mut contexts_as_contexts: Vec<&Context> = vec![];
         for ctx in in_contexts.into_iter() {
-            match Context::create_from_name(&config, &ctx) {
+            match Context::create_from_name(config, &ctx) {
                 None => {
                     return Err(DBError::ContextDoesNotExist(ctx));
                 }

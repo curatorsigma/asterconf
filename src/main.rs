@@ -1,3 +1,4 @@
+use std::panic;
 use std::sync::Arc;
 
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
@@ -32,7 +33,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_filter(filter::LevelFilter::TRACE),
         )
         .with(fmt::Layer::default().with_writer(writer));
-    tracing::subscriber::set_global_default(subscriber).unwrap();
+    if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
+        eprintln!("Error setting global tracing subscriber: {e}");
+        Err(e)?;
+    };
 
     let config = types::Config::create().await?;
     let config_capsule = Arc::new(config);
@@ -42,14 +46,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // start the agi server
     let config_for_agi = config_capsule.clone();
     let agi_handle = tokio::spawn(async move {
-        agi_server::run_agi_server(config_for_agi).await.unwrap();
+        if let Err(e) = agi_server::run_agi_server(config_for_agi).await {
+            eprintln!("Could not start the AGI server: {e}");
+            panic!("Unable to start AGI server. Unrecoverable");
+        };
     });
 
     // start the web server
     let config_for_web = config_capsule.clone();
     let webserver = web_server::Webserver::new().await?;
     let web_handle = tokio::spawn(async move {
-        webserver.run_web_server(config_for_web).await.unwrap();
+        if let Err(e) = webserver.run_web_server(config_for_web).await {
+            eprintln!("Could not start the web server: {e}");
+            panic!("Unable to start web server. Unrecoverable");
+        };
     });
 
     let res = tokio::join!(agi_handle, web_handle);

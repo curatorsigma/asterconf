@@ -34,7 +34,7 @@ fn escape_ldap_search_filter_parameter(parameter: &str) -> String {
             x => res.push(x),
         };
     }
-    return res;
+    res
 }
 
 /// Functions for accessing LDAP
@@ -126,7 +126,7 @@ impl LDAPBackend {
             .await
             .map_err(|_| LDAPError::CannotBind)?
             .success()
-            .map_err(|e| LDAPError::UserError(e))?;
+            .map_err(LDAPError::UserError)?;
         Ok(ldap)
     }
 
@@ -146,8 +146,8 @@ impl LDAPBackend {
             .await
             .map_err(|_| LDAPError::CannotSearch)?
             .success()
-            .map_err(|x| LDAPError::UserError(x))?;
-        if rs.len() == 0 {
+            .map_err(LDAPError::UserError)?;
+        if rs.is_empty() {
             return Ok((our_handle, None));
         }
         if rs.len() != 1 {
@@ -166,7 +166,7 @@ impl LDAPBackend {
         let uid = if uids.len() != 1 {
             return Err(LDAPError::NotExactlyOneOfAttribute("uid".to_string()));
         } else {
-            uids.into_iter()
+            uids.iter()
                 .next()
                 .expect("In else if if len() != 1")
                 .to_string()
@@ -182,7 +182,7 @@ impl LDAPBackend {
             ));
         } else {
             password_hashes
-                .into_iter()
+                .iter()
                 .next()
                 .expect("In else of if len() != 1")
                 .to_string()

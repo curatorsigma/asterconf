@@ -47,7 +47,7 @@ fn create_nonce() -> String {
     raw_bytes[8..=11].clone_from_slice(&now_in_secs.subsec_millis().to_le_bytes());
     // 8 bytes against predictability
     rand::rngs::ThreadRng::default().fill(&mut raw_bytes[12..=19]);
-    return hex::encode(raw_bytes);
+    hex::encode(raw_bytes)
 }
 
 #[derive(Clone, Debug)]
@@ -72,7 +72,7 @@ impl AGIHandler for SHA1DigestOverAGI {
         let mut hasher = Sha1::new();
         hasher.update(self.secret.as_bytes());
         hasher.update(":".as_bytes());
-        hasher.update(&nonce.as_bytes());
+        hasher.update(nonce.as_bytes());
         let expected_digest: [u8; 20] = hasher.finalize().into();
         let digest_response = connection
             .send_command(GetFullVariable::new(format!(
