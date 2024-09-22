@@ -152,16 +152,19 @@ async fn redirect_http_to_https(config: Arc<Config>) {
     let listener = match tokio::net::TcpListener::bind(config.web_bind_string.clone()).await {
         Ok(x) => x,
         Err(e) => {
-            tracing::error!("Could not bind a TcP socket for the http -> https redirect service: {e}");
+            tracing::error!(
+                "Could not bind a TcP socket for the http -> https redirect service: {e}"
+            );
             panic!("Unable to start http -> https server. Unrecoverable.");
-        },
+        }
     };
     tracing::info!(
         "Webserver (HTTP) listening on {}",
-        listener.local_addr().expect("Local address of bound http -> https should be readable.")
+        listener
+            .local_addr()
+            .expect("Local address of bound http -> https should be readable.")
     );
-    if let Err(e) = axum::serve(listener, redirect.into_make_service())
-        .await {
+    if let Err(e) = axum::serve(listener, redirect.into_make_service()).await {
         tracing::error!("Could not start the http -> https redirect server: {e}");
         panic!("Unable to start http -> https server. Unrecoverable.");
     };
