@@ -8,7 +8,7 @@ authors = ["Jonathan Schleucher"]
 serde = { version = "1.0.208", features = ["derive"] }
 serde_yaml = "0.9.34"
 tokio = { version = "1.39.3", features = ["full"] }
-sqlx = { version = "0.7", features = ["sqlite", "postgres", "runtime-tokio-rustls"] }
+sqlx = { version = "0.8.1", features = ["sqlite", "postgres", "runtime-tokio-rustls"] }
 time = { version = "0.3.36", features = ["formatting", "local-offset"] }
 tracing = { version = "0.1.40", features = ["attributes"] }
 tracing-appender = "0.2.3"
@@ -22,16 +22,16 @@ rand = "0.8.5"
 hex = "0.4.3"
 axum = "0.7.5"
 axum-server = { version = "0.7.1", features = ["tls-rustls"] }
-axum-login = "0.15.3"
+axum-login = "0.16.0"
 ldap3 = { version = "0.11.5", default-features = false, features = ["tls-rustls"] }
 axum-messages = "0.6.1"
 askama_axum = "0.4.0"
 askama = { version = "0.12.1", features = ["with-axum"] }
 tower = "0.4.13"
-tower-sessions = { version = "0.12.0", default-features = false, features = [
+tower-sessions = { version = "0.13.0", default-features = false, features = [
     "signed",
 ] }
-tower-sessions-sqlx-store = { version = "0.12.0", features = ["sqlite"] }
+tower-sessions-sqlx-store = { version = "0.14.0", features = ["sqlite"] }
 axum-extra = { version = "0.9.3", features = ["form"] }
 uuid = { version = "1.10.0", features = ["v4"] }
 

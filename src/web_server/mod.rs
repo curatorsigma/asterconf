@@ -1,12 +1,12 @@
 use askama::Template;
 use axum_login::{
     login_required,
-    tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer},
+    tower_sessions::{Expiry, SessionManagerLayer},
     AuthManagerLayerBuilder,
 };
 use sqlx::SqlitePool;
 use time::Duration;
-use tower_sessions::cookie::Key;
+use tower_sessions::{cookie::Key, ExpiredDeletion};
 use tower_sessions_sqlx_store::SqliteStore;
 use uuid::Uuid;
 
