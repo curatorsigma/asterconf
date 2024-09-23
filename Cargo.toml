@@ -34,6 +34,9 @@ tower-sessions = { version = "0.13.0", default-features = false, features = [
 tower-sessions-sqlx-store = { version = "0.14.0", features = ["sqlite"] }
 axum-extra = { version = "0.9.3", features = ["form"] }
 uuid = { version = "1.10.0", features = ["v4"] }
+# only so that we can install a default crypto provider.
+# used only transitively by some other dependencies
+rustls = { version = "0.23.13", default-features = false, features = ["ring"]}
 
 [dev-dependencies]
 dotenv = "0.15.0"
