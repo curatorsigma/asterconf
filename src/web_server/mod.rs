@@ -222,6 +222,6 @@ async fn css_style() -> impl IntoResponse {
 async fn fallback() -> impl IntoResponse {
     (
         StatusCode::NOT_FOUND,
-        Html(include_str!("templates/404.html")),
+        Html(include_str!("../../templates/404.html")),
     )
 }
