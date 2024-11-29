@@ -182,7 +182,8 @@ impl AGIHandler for HandleCallForward {
         // instead repeat the initial destination as the final destination
         event!(
             Level::INFO,
-            "Call to {initial_dest} did not need forwarding."
+            "Call to {initial_dest} did not need forwarding - no Context matches the given {}.",
+            context_name
         );
         connection
             .send_command(SetVariable::new(
