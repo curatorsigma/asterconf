@@ -1,0 +1,9 @@
+CREATE TABLE timeframe_weekly
+( weekly_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+, start_dom INTEGER NOT NULL
+, start_time TIME NOT NULL
+, end_dom INTEGER NOT NULL
+, end_time TIME NOT NULL
+);
+
+

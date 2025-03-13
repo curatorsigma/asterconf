@@ -1,10 +1,12 @@
+//! Base types used across the codebase.
 use std::fs::File;
 use std::path::Path;
 use std::{collections::HashMap, fmt::Display};
 
 use axum_server::tls_rustls::RustlsConfig;
+use chrono::{DateTime, NaiveTime, Utc};
 /// Structs used by the other components
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::{event, Level};
 
@@ -164,6 +166,57 @@ impl<'a> CallForward<'a, NoId> {
             in_contexts: self.in_contexts,
         }
     }
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct TimeframeOnce<S>
+    where S: IdState,
+{
+    once_id: S,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct TimeframeDaily<S>
+    where S: IdState,
+{
+    daily_id: S,
+    start_time: NaiveTime,
+    end_time: NaiveTime,
+}
+
+#[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type, Deserialize, Serialize)]
+#[sqlx(type_name = "DAYOFWEEK", rename_all = "lowercase")]
+enum DayOfWeek {
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday,
+}
+#[derive(Debug, sqlx::FromRow)]
+struct TimeframeWeekly<S>
+    where S: IdState,
+{
+    daily_id: S,
+    start_dow: DayOfWeek,
+    start_time: NaiveTime,
+    end_dow: DayOfWeek,
+    end_time: NaiveTime,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct TimeframeMontly<S>
+    where S: IdState,
+{
+    daily_id: S,
+    start_dom: u8,
+    start_time: NaiveTime,
+    end_dom: u8,
+    end_time: NaiveTime,
 }
 
 #[derive(Deserialize)]

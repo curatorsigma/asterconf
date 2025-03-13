@@ -1,0 +1,2 @@
+DROP TYPE DAYOFWEEK;
+DROP TABLE timeframe_weekly;
