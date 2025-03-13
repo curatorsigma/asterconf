@@ -173,8 +173,8 @@ struct TimeframeOnce<S>
     where S: IdState,
 {
     once_id: S,
-    start: DateTime<Utc>,
-    end: DateTime<Utc>,
+    start_time: DateTime<Utc>,
+    end_time: DateTime<Utc>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
