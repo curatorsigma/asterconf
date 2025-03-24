@@ -39,6 +39,20 @@ pub(crate) fn create_protected_router() -> Router {
             "/web/search-extension/to",
             post(self::post::to_search_extension),
         )
+        // TODO:
+        // get the html
+        // post the form data to create new
+        // .route("/web/call-forward/:fwdid/timeframe/new", get().post())
+        // je für alle vier typen:
+        // get the html
+        // delete to delete
+        // .route("/web/call-forward/:fwdid/timeframe/once/:timeframeid", get().post().delete())
+        // get the html (editable form)
+        // post to edit
+        // .route("/web/call-forward/:fwdid/timeframe/once/:timeframeid/edit", get().post())
+        // TODO change:
+        // - root / call-forward show green/grey for the timeframe active/inactive; reload these
+        // every 5m
 }
 
 #[derive(Template)]
