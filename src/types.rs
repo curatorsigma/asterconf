@@ -170,7 +170,8 @@ impl<'a> CallForward<'a, NoId> {
 
 #[derive(Debug, sqlx::FromRow)]
 struct TimeframeOnce<S>
-    where S: IdState,
+where
+    S: IdState,
 {
     once_id: S,
     start_time: DateTime<Utc>,
@@ -179,7 +180,8 @@ struct TimeframeOnce<S>
 
 #[derive(Debug, sqlx::FromRow)]
 struct TimeframeDaily<S>
-    where S: IdState,
+where
+    S: IdState,
 {
     daily_id: S,
     start_time: NaiveTime,
@@ -199,7 +201,8 @@ enum DayOfWeek {
 }
 #[derive(Debug, sqlx::FromRow)]
 struct TimeframeWeekly<S>
-    where S: IdState,
+where
+    S: IdState,
 {
     daily_id: S,
     start_dow: DayOfWeek,
@@ -210,7 +213,8 @@ struct TimeframeWeekly<S>
 
 #[derive(Debug, sqlx::FromRow)]
 struct TimeframeMontly<S>
-    where S: IdState,
+where
+    S: IdState,
 {
     daily_id: S,
     start_dom: u8,

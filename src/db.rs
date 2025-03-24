@@ -148,7 +148,7 @@ fn convert_to_call_forwards(
             if fwd.to.extension == to_extension && fwd.from.extension == from_extension {
                 match context {
                     None => {}
-                    Some(context_name) =>{
+                    Some(context_name) => {
                         let context_as_object = Context::create_from_name(config, &context_name);
                         match context_as_object {
                             None => {
@@ -169,7 +169,11 @@ fn convert_to_call_forwards(
             config,
             from_extension,
             to_extension,
-            if let Some(context_name) = context { vec![context_name] } else { vec![] },
+            if let Some(context_name) = context {
+                vec![context_name]
+            } else {
+                vec![]
+            },
             fwd_id,
         )?);
     }
@@ -314,40 +318,39 @@ pub async fn update_call_forward<'a>(
             .map_err(|_| DBError::CannotSelectContexts(Into::<i32>::into(forward.fwd_id)))?;
 
     // The contexts that are set in forward, but not yet in the DB
-    let contexts_to_set = forward.in_contexts.iter().filter_map(|x| {
-        if context_res.contains(&x.asterisk_name) {
-            None
-        } else {
-            Some(x.asterisk_name.clone())
-        }
-    });
+    let contexts_to_set = forward
+        .in_contexts
+        .iter()
+        .filter(|ctx| !context_res.contains(&ctx.asterisk_name));
+
     // Insert the contexts which are new
     for ctx_to_set in contexts_to_set {
         sqlx::query("INSERT INTO map_call_forward_context (fwd_id, context) VALUES ($1, $2)")
             .bind(Into::<i32>::into(forward.fwd_id))
-            .bind(&ctx_to_set)
+            .bind(&ctx_to_set.asterisk_name)
             .execute(&mut *tx)
             .await
             .map_err(|_| {
                 DBError::CannotInsertContextMapping(
-                    ctx_to_set.clone(),
+                    ctx_to_set.asterisk_name.clone(),
                     Into::<i32>::into(forward.fwd_id),
                 )
             })?;
     }
 
     // The contexts that are in the DB, but not in forward anymore
-    let contexts_to_delete = context_res.iter().filter(|&x| {
+    let contexts_to_delete = context_res.into_iter().filter(|ctx_in_db| {
         forward
             .in_contexts
             .iter()
-            .any(|ctx| ctx.asterisk_name == *x)
+            .all(|ctx_in_fwd| ctx_in_fwd.asterisk_name != *ctx_in_db)
     });
+
     // Delete the contexts which are no longer required
     for ctx_to_delete in contexts_to_delete {
         sqlx::query("DELETE FROM map_call_forward_context WHERE fwd_id = $1 and context = $2 ")
             .bind(Into::<i32>::into(forward.fwd_id))
-            .bind(ctx_to_delete)
+            .bind(&ctx_to_delete)
             .execute(&mut *tx)
             .await
             .map_err(|_| {
@@ -363,4 +366,3 @@ pub async fn update_call_forward<'a>(
         .map_err(|_| DBError::CannotCommitTransaction)?;
     Ok(())
 }
-

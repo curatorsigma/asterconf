@@ -23,9 +23,7 @@ fn __load_crypto_provider() {
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn get_call_forwards_from_startpoint(
-    pool: PgPool,
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn get_call_forwards_from_startpoint(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -114,28 +112,29 @@ async fn delete_call_forward(pool: PgPool) -> Result<(), Box<dyn std::error::Err
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn update_call_forward_change_dest(
-    pool: PgPool,
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn update_call_forward_change_dest(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
     let startpoint = Extension::create_from_name(&config, "702".to_string());
     let res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
-    let mut fwd = res.into_iter().find(|f| f.to.extension == "something-external".to_owned()).unwrap();
+    let mut fwd = res
+        .into_iter()
+        .find(|f| f.to.extension == "something-external".to_owned())
+        .unwrap();
     fwd.to = startpoint.clone();
     super::update_call_forward(&config, &fwd).await?;
     let res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
-    dbg!(&res);
-    assert_eq!(res.last().unwrap().to.extension, "702".to_string());
+    let by_id = super::get_call_forward_by_id(&config, fwd.fwd_id.into()).await?;
+    assert_eq!(res.len(), 2);
+    assert_eq!(res[0].to.extension, "702".to_string());
+    assert_eq!(res[1].to.extension, "704".to_string());
 
     Ok(())
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn update_call_forward_change_source(
-    pool: PgPool,
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn update_call_forward_change_source(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -151,9 +150,7 @@ async fn update_call_forward_change_source(
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn update_call_forward_add_context(
-    pool: PgPool,
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn update_call_forward_add_context(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
