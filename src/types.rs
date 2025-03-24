@@ -4,10 +4,10 @@ use std::path::Path;
 use std::{collections::HashMap, fmt::Display};
 
 use axum_server::tls_rustls::RustlsConfig;
-use chrono::{DateTime, NaiveTime, Utc};
 /// Structs used by the other components
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use time::{PrimitiveDateTime, Time};
 use tracing::{event, Level};
 
 use crate::db::DBError;
@@ -96,6 +96,11 @@ impl From<&HasId> for i32 {
         value.id
     }
 }
+impl From<i32> for HasId {
+    fn from(value: i32) -> Self {
+        Self { id: value }
+    }
+}
 impl IdState for HasId {}
 
 #[derive(Debug, Clone, PartialEq)]
@@ -169,28 +174,64 @@ impl<'a> CallForward<'a, NoId> {
 }
 
 #[derive(Debug, sqlx::FromRow)]
-struct TimeframeOnce<S>
+pub(crate) struct TimeframeOnce<S>
 where
     S: IdState,
 {
     once_id: S,
-    start_time: DateTime<Utc>,
-    end_time: DateTime<Utc>,
+    /// UTC datetime when this timeframe starts
+    pub(crate) start_time: PrimitiveDateTime,
+    /// UTC datetime when this timeframe ends
+    pub(crate) end_time: PrimitiveDateTime,
+}
+impl TimeframeOnce<NoId> {
+    pub(crate) fn add_id(self, id: i32) -> TimeframeOnce<HasId> {
+        TimeframeOnce { once_id: id.into(), start_time: self.start_time, end_time: self.end_time, }
+    }
+    pub(crate) fn new(start_time: PrimitiveDateTime, end_time: PrimitiveDateTime) -> Self {
+        Self {
+            once_id: NoId {  },
+            start_time,
+            end_time,
+        }
+    }
+}
+impl TimeframeOnce<HasId> {
+    pub(crate) fn id(&self) -> i32 {
+        self.once_id.into()
+    }
 }
 
 #[derive(Debug, sqlx::FromRow)]
-struct TimeframeDaily<S>
+pub(crate) struct TimeframeDaily<S>
 where
     S: IdState,
 {
     daily_id: S,
-    start_time: NaiveTime,
-    end_time: NaiveTime,
+    pub(crate) start_time: Time,
+    pub(crate) end_time: Time,
+}
+impl TimeframeDaily<NoId> {
+    pub(crate) fn add_id(self, id: i32) -> TimeframeDaily<HasId> {
+        TimeframeDaily{ daily_id: id.into(), start_time: self.start_time, end_time: self.end_time, }
+    }
+    pub(crate) fn new(start_time: Time, end_time: Time) -> Self {
+        Self {
+            daily_id: NoId {  },
+            start_time,
+            end_time,
+        }
+    }
+}
+impl TimeframeDaily<HasId> {
+    pub(crate) fn id(&self) -> i32 {
+        self.daily_id.into()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type, Deserialize, Serialize)]
-#[sqlx(type_name = "DAYOFWEEK", rename_all = "lowercase")]
-enum DayOfWeek {
+#[sqlx(type_name = "DAYOFWEEK")]
+pub(crate) enum DayOfWeek {
     Monday,
     Tuesday,
     Wednesday,
@@ -200,27 +241,78 @@ enum DayOfWeek {
     Sunday,
 }
 #[derive(Debug, sqlx::FromRow)]
-struct TimeframeWeekly<S>
+pub(crate) struct TimeframeWeekly<S>
 where
     S: IdState,
 {
-    daily_id: S,
-    start_dow: DayOfWeek,
-    start_time: NaiveTime,
-    end_dow: DayOfWeek,
-    end_time: NaiveTime,
+    weekly_id: S,
+    pub(crate) start_dow: DayOfWeek,
+    pub(crate) start_time: Time,
+    pub(crate) end_dow: DayOfWeek,
+    pub(crate) end_time: Time,
+}
+impl TimeframeWeekly<NoId> {
+    pub(crate) fn add_id(self, id: i32) -> TimeframeWeekly<HasId> {
+        TimeframeWeekly{
+            weekly_id: id.into(),
+            start_dow: self.start_dow,
+            start_time: self.start_time,
+            end_dow: self.end_dow,
+            end_time: self.end_time, }
+    }
+    pub(crate) fn new(start_dow: DayOfWeek, start_time: Time, end_dow: DayOfWeek, end_time: Time) -> Self {
+        Self {
+            weekly_id: NoId {  },
+            start_dow,
+            start_time,
+            end_dow,
+            end_time,
+        }
+    }
+}
+impl TimeframeWeekly<HasId> {
+    pub(crate) fn id(&self) -> i32 {
+        self.weekly_id.into()
+    }
 }
 
 #[derive(Debug, sqlx::FromRow)]
-struct TimeframeMontly<S>
+pub(crate) struct TimeframeMonthly<S>
 where
     S: IdState,
 {
-    daily_id: S,
-    start_dom: u8,
-    start_time: NaiveTime,
-    end_dom: u8,
-    end_time: NaiveTime,
+    monthly_id: S,
+    /// Note: DOM being viable (an actual day of month) is not enforced, since we do not know how
+    /// long an individual month is anyways. so setting `end_dom = 60` is the same as setting it to
+    /// `28` in february.
+    pub(crate) start_dom: i16,
+    pub(crate) start_time: Time,
+    pub(crate) end_dom: i16,
+    pub(crate) end_time: Time,
+}
+impl TimeframeMonthly<NoId> {
+    pub(crate) fn add_id(self, id: i32) -> TimeframeMonthly<HasId> {
+        TimeframeMonthly{
+            monthly_id: id.into(),
+            start_dom: self.start_dom,
+            start_time: self.start_time,
+            end_dom: self.end_dom,
+            end_time: self.end_time, }
+    }
+    pub(crate) fn new(start_dom: i16, start_time: Time, end_dom: i16, end_time: Time) -> Self {
+        Self {
+            monthly_id: NoId {  },
+            start_dom,
+            start_time,
+            end_dom,
+            end_time,
+        }
+    }
+}
+impl TimeframeMonthly<HasId> {
+    pub(crate) fn id(&self) -> i32 {
+        self.monthly_id.into()
+    }
 }
 
 #[derive(Deserialize)]

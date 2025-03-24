@@ -1,8 +1,8 @@
 CREATE TABLE timeframe_monthly
 ( monthly_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY
-, start_dom INTEGER NOT NULL
+, start_dom SMALLINT NOT NULL
 , start_time TIME NOT NULL
-, end_dom INTEGER NOT NULL
+, end_dom SMALLINT NOT NULL
 , end_time TIME NOT NULL
 );
 

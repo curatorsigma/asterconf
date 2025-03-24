@@ -2,16 +2,16 @@ use std::error::Error;
 /// Functions for reading and writing into the DB
 use std::fmt::Display;
 
-use sqlx::{postgres::PgRow, Row};
-use tracing::Level;
+use sqlx::{postgres::PgRow, PgPool, Row};
+use tracing::{warn, Level};
 
-use crate::types::{CallForward, Config, Context, Extension, HasId, NoId};
+use crate::types::{CallForward, Config, Context, Extension, HasId, NoId, TimeframeDaily, TimeframeMonthly, TimeframeOnce, TimeframeWeekly};
 
 // include tests
 #[cfg(test)]
 mod test;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum DBError {
     CannotStartTransaction,
     CannotCommitTransaction,
@@ -26,6 +26,8 @@ pub enum DBError {
     CannotSelectContexts(i32),
     CannotDeleteContextMapping(String, i32),
     OverlappingCallForwards(Extension, Context),
+    CannotInsertTimeframe(sqlx::Error),
+    CannotGetNewIndex,
 }
 impl Display for DBError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -74,6 +76,12 @@ impl Display for DBError {
                     f,
                     "There is already a call forward from {exten} active in context {context}."
                 )
+            }
+            Self::CannotInsertTimeframe(e) => {
+                write!(f, "Unable to insert timeframe: {e}")
+            }
+            Self::CannotGetNewIndex => {
+                write!(f, "Cannot get index of newly inserted element")
             }
         }
     }
@@ -366,3 +374,80 @@ pub async fn update_call_forward<'a>(
         .map_err(|_| DBError::CannotCommitTransaction)?;
     Ok(())
 }
+
+pub(crate) async fn insert_timeframe_once(pool: PgPool, timeframe: TimeframeOnce<NoId>) -> Result<TimeframeOnce<HasId>, DBError> {
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|_| DBError::CannotStartTransaction)?;
+    let once_id_res = sqlx::query!("INSERT INTO timeframe_once (start_time, end_time) VALUES ($1, $2) RETURNING once_id;",
+        timeframe.start_time, timeframe.end_time,)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(DBError::CannotInsertTimeframe)?;
+    let res = timeframe.add_id(once_id_res.once_id);
+    tx.commit()
+        .await
+        .map_err(|_| DBError::CannotCommitTransaction)?;
+    Ok(res)
+}
+
+pub(crate) async fn insert_timeframe_daily(pool: PgPool, timeframe: TimeframeDaily<NoId>) -> Result<TimeframeDaily<HasId>, DBError> {
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|_| DBError::CannotStartTransaction)?;
+    let daily_id_res = sqlx::query!("INSERT INTO timeframe_daily (start_time, end_time) VALUES ($1, $2) RETURNING daily_id;",
+        timeframe.start_time, timeframe.end_time,)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(DBError::CannotInsertTimeframe)?;
+    let res = timeframe.add_id(daily_id_res.daily_id);
+    tx.commit()
+        .await
+        .map_err(|_| DBError::CannotCommitTransaction)?;
+    Ok(res)
+}
+
+pub(crate) async fn insert_timeframe_weekly(pool: PgPool, timeframe: TimeframeWeekly<NoId>) -> Result<TimeframeWeekly<HasId>, DBError> {
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|_| DBError::CannotStartTransaction)?;
+    let weekly_id_res = sqlx::query!("INSERT INTO timeframe_weekly (start_dow, start_time, end_dow, end_time) VALUES ($1, $2, $3, $4) RETURNING weekly_id;",
+        timeframe.start_dow as _,
+        timeframe.start_time,
+        timeframe.end_dow as _,
+        timeframe.end_time,
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(DBError::CannotInsertTimeframe)?;
+    let res = timeframe.add_id(weekly_id_res.weekly_id);
+    tx.commit()
+        .await
+        .map_err(|_| DBError::CannotCommitTransaction)?;
+    Ok(res)
+}
+
+pub(crate) async fn insert_timeframe_monthly(pool: PgPool, timeframe: TimeframeMonthly<NoId>) -> Result<TimeframeMonthly<HasId>, DBError> {
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|_| DBError::CannotStartTransaction)?;
+    let monthly_id_res = sqlx::query!("INSERT INTO timeframe_monthly (start_dom, start_time, end_dom, end_time) VALUES ($1, $2, $3, $4) RETURNING monthly_id;",
+        timeframe.start_dom,
+        timeframe.start_time,
+        timeframe.end_dom,
+        timeframe.end_time,
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(DBError::CannotInsertTimeframe)?;
+    let res = timeframe.add_id(monthly_id_res.monthly_id);
+    tx.commit()
+        .await
+        .map_err(|_| DBError::CannotCommitTransaction)?;
+    Ok(res)
+}
+

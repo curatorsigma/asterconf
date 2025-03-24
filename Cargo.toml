@@ -9,7 +9,7 @@ serde = { version = "1.0.208", features = ["derive"] }
 serde_yaml = "0.9.34"
 tokio = { version = "1.39.3", features = ["full"] }
 sqlx = { version = "0.8.1", features = ["sqlite", "postgres", "runtime-tokio-rustls"] }
-time = { version = "0.3.36", features = ["formatting", "local-offset"] }
+time = { version = "0.3.36", features = ["formatting", "local-offset", "macros"] }
 tracing = { version = "0.1.40", features = ["attributes"] }
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["time", "fmt", "env-filter"] }

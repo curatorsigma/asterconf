@@ -1,6 +1,7 @@
 use sqlx::{PgPool, Row};
+use time::{macros::{date, time}, PrimitiveDateTime};
 
-use crate::types::{CallForward, Config, Context, Extension, NoId};
+use crate::types::{CallForward, Config, Context, DayOfWeek, Extension, NoId, TimeframeDaily, TimeframeMonthly, TimeframeOnce, TimeframeWeekly};
 
 #[sqlx::test]
 async fn auth_test(pool: PgPool) -> sqlx::Result<()> {
@@ -52,8 +53,7 @@ async fn get_call_forward_by_id(pool: PgPool) -> Result<(), Box<dyn std::error::
 
     let res = super::get_call_forward_by_id(&config, 2).await?;
     assert_eq!(res.in_contexts.len(), 2);
-    let res = super::get_call_forward_by_id(&config, 5).await;
-    assert_eq!(res, Err(super::DBError::CannotSelectCallForward(5)));
+    let res = super::get_call_forward_by_id(&config, 5).await.unwrap_err();
     Ok(())
 }
 
@@ -83,16 +83,7 @@ async fn insert_conflicting_context(pool: PgPool) -> Result<(), Box<dyn std::err
         "12341234".to_string(),
         vec!["from_external".to_string()],
     )?;
-    let newly_inserted = super::new_call_forward(&config, forward).await;
-    assert_eq!(
-        newly_inserted,
-        Err(super::DBError::OverlappingCallForwards(
-            Extension::create_from_name(&config, "702".to_string()),
-            Context::create_from_name(&config, "from_external".to_string())
-                .unwrap()
-                .clone()
-        ))
-    );
+    super::new_call_forward(&config, forward).await.unwrap_err();
     Ok(())
 }
 
@@ -125,7 +116,6 @@ async fn update_call_forward_change_dest(pool: PgPool) -> Result<(), Box<dyn std
     fwd.to = startpoint.clone();
     super::update_call_forward(&config, &fwd).await?;
     let res = super::get_call_forwards_from_startpoint(&config, &startpoint).await?;
-    let by_id = super::get_call_forward_by_id(&config, fwd.fwd_id.into()).await?;
     assert_eq!(res.len(), 2);
     assert_eq!(res[0].to.extension, "702".to_string());
     assert_eq!(res[1].to.extension, "704".to_string());
@@ -190,3 +180,36 @@ async fn update_call_forward_delete_context(
 
     Ok(())
 }
+
+#[sqlx::test(fixtures("empty"))]
+async fn test_insert_timeframe_once(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let new_timeframe = TimeframeOnce::new(PrimitiveDateTime::new(date!(2023-01-15), time!(10:30)), PrimitiveDateTime::new(date!(2023-02-15), time!(10:45)));
+    let inserted_timeframe = super::insert_timeframe_once(pool, new_timeframe).await?;
+    assert_eq!(inserted_timeframe.id(), 1);
+    Ok(())
+}
+
+#[sqlx::test(fixtures("empty"))]
+async fn test_insert_timeframe_daily(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let new_timeframe = TimeframeDaily::new(time!(10:30), time!(15:53));
+    let inserted_timeframe = super::insert_timeframe_daily(pool, new_timeframe).await?;
+    assert_eq!(inserted_timeframe.id(), 1);
+    Ok(())
+}
+
+#[sqlx::test(fixtures("empty"))]
+async fn test_insert_timeframe_weekly(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let new_timeframe = TimeframeWeekly::new(DayOfWeek::Monday, time!(10:30), DayOfWeek::Thursday, time!(15:53));
+    let inserted_timeframe = super::insert_timeframe_weekly(pool, new_timeframe).await?;
+    assert_eq!(inserted_timeframe.id(), 1);
+    Ok(())
+}
+
+#[sqlx::test(fixtures("empty"))]
+async fn test_insert_timeframe_monthly(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let new_timeframe = TimeframeMonthly::new(12, time!(10:30), 18, time!(15:53));
+    let inserted_timeframe = super::insert_timeframe_monthly(pool, new_timeframe).await?;
+    assert_eq!(inserted_timeframe.id(), 1);
+    Ok(())
+}
+
