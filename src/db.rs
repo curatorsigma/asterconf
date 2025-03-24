@@ -184,7 +184,7 @@ pub async fn get_all_call_forwards<'a>(
     let call_forwards = sqlx::query(
         "SELECT call_forward.fwd_id, call_forward.from_extension, call_forward.to_extension, map_call_forward_context.context
             FROM call_forward
-         INNER JOIN map_call_forward_context
+         LEFT JOIN map_call_forward_context
             ON map_call_forward_context.fwd_id = call_forward.fwd_id"
     )
         .fetch_all(&config.pool)
