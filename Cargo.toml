@@ -13,8 +13,6 @@ time = { version = "0.3.41", features = ["formatting", "local-offset", "macros",
 tracing = { version = "0.1.40", features = ["attributes"] }
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["time", "fmt", "env-filter"] }
-# try removing this
-chrono = "0.4.38"
 blazing_agi = { version = "0.3.1", features = ["tracing"]}
 blazing_agi_macros = { version = "0.1.0" }
 async-trait = "0.1.81"
