@@ -2,10 +2,13 @@ use std::error::Error;
 /// Functions for reading and writing into the DB
 use std::fmt::Display;
 
-use sqlx::{postgres::PgRow, PgPool, Row};
+use sqlx::{postgres::PgRow, PgConnection, PgPool, Postgres, Row, Transaction};
 use tracing::{warn, Level};
 
-use crate::types::{CallForward, Config, Context, Extension, HasId, NoId, TimeframeDaily, TimeframeMonthly, TimeframeOnce, TimeframeWeekly};
+use crate::types::{
+    CallForward, Config, Context, Extension, HasId, NoId, Timeframe, TimeframeDaily,
+    TimeframeMonthly, TimeframeOnce, TimeframeWeekly,
+};
 
 // include tests
 #[cfg(test)]
@@ -28,6 +31,10 @@ pub enum DBError {
     OverlappingCallForwards(Extension, Context),
     CannotInsertTimeframe(sqlx::Error),
     CannotGetNewIndex,
+    CannotInsertTimeframeMap(sqlx::Error),
+    CannotSelectTimeframeMap(sqlx::Error),
+    NoTimeframeType,
+    CannotSelectTimeframe(sqlx::Error),
 }
 impl Display for DBError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -81,7 +88,19 @@ impl Display for DBError {
                 write!(f, "Unable to insert timeframe: {e}")
             }
             Self::CannotGetNewIndex => {
-                write!(f, "Cannot get index of newly inserted element")
+                write!(f, "Unable to get index of newly inserted element")
+            }
+            Self::CannotInsertTimeframeMap(e) => {
+                write!(f, "Unable to link a timeframe to a forward: {e}")
+            }
+            Self::CannotSelectTimeframeMap(e) => {
+                write!(f, "Unable to select timeframes mapping to one forward: {e}")
+            }
+            Self::NoTimeframeType => {
+                write!(f, "No timeframe type found in row - DB contraint violated.")
+            }
+            Self::CannotSelectTimeframe(e) => {
+                write!(f, "Unable to select Timeframe: {e}")
             }
         }
     }
@@ -375,79 +394,236 @@ pub async fn update_call_forward<'a>(
     Ok(())
 }
 
-pub(crate) async fn insert_timeframe_once(pool: PgPool, timeframe: TimeframeOnce<NoId>) -> Result<TimeframeOnce<HasId>, DBError> {
-    let mut tx = pool
-        .begin()
-        .await
-        .map_err(|_| DBError::CannotStartTransaction)?;
-    let once_id_res = sqlx::query!("INSERT INTO timeframe_once (start_time, end_time) VALUES ($1, $2) RETURNING once_id;",
-        timeframe.start_time, timeframe.end_time,)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(DBError::CannotInsertTimeframe)?;
+pub(crate) async fn insert_timeframe_once(
+    con: &mut PgConnection,
+    timeframe: TimeframeOnce<NoId>,
+) -> Result<TimeframeOnce<HasId>, DBError> {
+    let once_id_res = sqlx::query!(
+        "INSERT INTO timeframe_once (start_time, end_time) VALUES ($1, $2) RETURNING once_id;",
+        timeframe.start_time,
+        timeframe.end_time,
+    )
+    .fetch_one(con)
+    .await
+    .map_err(DBError::CannotInsertTimeframe)?;
     let res = timeframe.add_id(once_id_res.once_id);
-    tx.commit()
-        .await
-        .map_err(|_| DBError::CannotCommitTransaction)?;
     Ok(res)
 }
 
-pub(crate) async fn insert_timeframe_daily(pool: PgPool, timeframe: TimeframeDaily<NoId>) -> Result<TimeframeDaily<HasId>, DBError> {
-    let mut tx = pool
-        .begin()
-        .await
-        .map_err(|_| DBError::CannotStartTransaction)?;
-    let daily_id_res = sqlx::query!("INSERT INTO timeframe_daily (start_time, end_time) VALUES ($1, $2) RETURNING daily_id;",
-        timeframe.start_time, timeframe.end_time,)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(DBError::CannotInsertTimeframe)?;
+pub(crate) async fn insert_timeframe_daily(
+    con: &mut PgConnection,
+    timeframe: TimeframeDaily<NoId>,
+) -> Result<TimeframeDaily<HasId>, DBError> {
+    let daily_id_res = sqlx::query!(
+        "INSERT INTO timeframe_daily (start_time, end_time) VALUES ($1, $2) RETURNING daily_id;",
+        timeframe.start_time,
+        timeframe.end_time,
+    )
+    .fetch_one(con)
+    .await
+    .map_err(DBError::CannotInsertTimeframe)?;
     let res = timeframe.add_id(daily_id_res.daily_id);
-    tx.commit()
-        .await
-        .map_err(|_| DBError::CannotCommitTransaction)?;
     Ok(res)
 }
 
-pub(crate) async fn insert_timeframe_weekly(pool: PgPool, timeframe: TimeframeWeekly<NoId>) -> Result<TimeframeWeekly<HasId>, DBError> {
-    let mut tx = pool
-        .begin()
-        .await
-        .map_err(|_| DBError::CannotStartTransaction)?;
+pub(crate) async fn insert_timeframe_weekly(
+    con: &mut PgConnection,
+    timeframe: TimeframeWeekly<NoId>,
+) -> Result<TimeframeWeekly<HasId>, DBError> {
     let weekly_id_res = sqlx::query!("INSERT INTO timeframe_weekly (start_dow, start_time, end_dow, end_time) VALUES ($1, $2, $3, $4) RETURNING weekly_id;",
         timeframe.start_dow as _,
         timeframe.start_time,
         timeframe.end_dow as _,
         timeframe.end_time,
         )
-        .fetch_one(&mut *tx)
+        .fetch_one(con)
         .await
         .map_err(DBError::CannotInsertTimeframe)?;
     let res = timeframe.add_id(weekly_id_res.weekly_id);
-    tx.commit()
-        .await
-        .map_err(|_| DBError::CannotCommitTransaction)?;
     Ok(res)
 }
 
-pub(crate) async fn insert_timeframe_monthly(pool: PgPool, timeframe: TimeframeMonthly<NoId>) -> Result<TimeframeMonthly<HasId>, DBError> {
-    let mut tx = pool
-        .begin()
-        .await
-        .map_err(|_| DBError::CannotStartTransaction)?;
+pub(crate) async fn insert_timeframe_monthly(
+    con: &mut PgConnection,
+    timeframe: TimeframeMonthly<NoId>,
+) -> Result<TimeframeMonthly<HasId>, DBError> {
     let monthly_id_res = sqlx::query!("INSERT INTO timeframe_monthly (start_dom, start_time, end_dom, end_time) VALUES ($1, $2, $3, $4) RETURNING monthly_id;",
         timeframe.start_dom,
         timeframe.start_time,
         timeframe.end_dom,
         timeframe.end_time,
         )
-        .fetch_one(&mut *tx)
+        .fetch_one(con)
         .await
         .map_err(DBError::CannotInsertTimeframe)?;
     let res = timeframe.add_id(monthly_id_res.monthly_id);
-    tx.commit()
-        .await
-        .map_err(|_| DBError::CannotCommitTransaction)?;
     Ok(res)
 }
 
+/// Insert a given timeframe
+pub(crate) async fn insert_timeframe(
+    con: &mut PgConnection,
+    timeframe: Timeframe<NoId>,
+) -> Result<Timeframe<HasId>, DBError> {
+    let inserted = match timeframe {
+        Timeframe::Once(x) => Timeframe::Once(insert_timeframe_once(con, x).await?),
+        Timeframe::Daily(x) => Timeframe::Daily(insert_timeframe_daily(con, x).await?),
+        Timeframe::Weekly(x) => Timeframe::Weekly(insert_timeframe_weekly(con, x).await?),
+        Timeframe::Monthly(x) => Timeframe::Monthly(insert_timeframe_monthly(con, x).await?),
+    };
+    Ok(inserted)
+}
+
+/// Given a timeframe already existing, link it to the forward given by `forward_id`.
+pub(crate) async fn link_timeframe<'a, 't>(
+    con: &'t mut PgConnection,
+    forward_id: i32,
+    timeframe: &'a Timeframe<HasId>,
+) -> Result<(), DBError> {
+    match timeframe {
+        Timeframe::Once(x) => {
+            sqlx::query!(
+                "INSERT INTO map_call_forward_timeframe (fwd_id, once_id) VALUES ($1, $2);",
+                forward_id,
+                x.id(),
+            )
+            .execute(con)
+            .await
+            .map_err(DBError::CannotInsertTimeframeMap)?;
+        }
+        Timeframe::Daily(x) => {
+            sqlx::query!(
+                "INSERT INTO map_call_forward_timeframe (fwd_id, daily_id) VALUES ($1, $2);",
+                forward_id,
+                x.id(),
+            )
+            .execute(con)
+            .await
+            .map_err(DBError::CannotInsertTimeframeMap)?;
+        }
+        Timeframe::Weekly(x) => {
+            sqlx::query!(
+                "INSERT INTO map_call_forward_timeframe (fwd_id, weekly_id) VALUES ($1, $2);",
+                forward_id,
+                x.id(),
+            )
+            .execute(con)
+            .await
+            .map_err(DBError::CannotInsertTimeframeMap)?;
+        }
+        Timeframe::Monthly(x) => {
+            sqlx::query!(
+                "INSERT INTO map_call_forward_timeframe (fwd_id, monthly_id) VALUES ($1, $2);",
+                forward_id,
+                x.id(),
+            )
+            .execute(con)
+            .await
+            .map_err(DBError::CannotInsertTimeframeMap)?;
+        }
+    };
+    Ok(())
+}
+
+/// Add a timeframe to the DB and link it to the given forward
+pub(crate) async fn add_timeframe_to_forward(
+    pool: PgPool,
+    forward_id: i32,
+    timeframe: Timeframe<NoId>,
+) -> Result<Timeframe<HasId>, DBError> {
+    // we need to only commit the timeframe insertion if linking also worked - create a transaction
+    // here and work in it
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|_| DBError::CannotStartTransaction)?;
+    let inserted = insert_timeframe(&mut *tx, timeframe).await?;
+    link_timeframe(&mut *tx, forward_id, &inserted).await?;
+    tx.commit()
+        .await
+        .map_err(|_| DBError::CannotCommitTransaction)?;
+    Ok(inserted)
+}
+
+pub(crate) async fn get_timeframe_once(
+    con: &mut PgConnection,
+    once_id: i32,
+) -> Result<TimeframeOnce<HasId>, DBError> {
+    sqlx::query_as!(
+        TimeframeOnce::<HasId>,
+        "SELECT once_id, start_time, end_time FROM timeframe_once WHERE once_id = $1;", once_id)
+        .fetch_one(con)
+        .await
+        .map_err(DBError::CannotSelectTimeframe)
+}
+
+pub(crate) async fn get_timeframe_daily(
+    con: &mut PgConnection,
+    daily_id: i32,
+) -> Result<TimeframeDaily<HasId>, DBError> {
+    sqlx::query_as!(
+        TimeframeDaily::<HasId>,
+        "SELECT daily_id, start_time, end_time FROM timeframe_daily WHERE daily_id = $1;", daily_id)
+        .fetch_one(con)
+        .await
+        .map_err(DBError::CannotSelectTimeframe)
+}
+
+pub(crate) async fn get_timeframe_weekly(
+    con: &mut PgConnection,
+    weekly_id: i32,
+) -> Result<TimeframeWeekly<HasId>, DBError> {
+    sqlx::query_as!(
+        TimeframeWeekly::<HasId>,
+        "SELECT weekly_id, start_dow AS \"start_dow: crate::types::DayOfWeek\", start_time, end_dow AS \"end_dow: crate::types::DayOfWeek\", end_time FROM timeframe_weekly WHERE weekly_id = $1;", weekly_id)
+        .fetch_one(con)
+        .await
+        .map_err(DBError::CannotSelectTimeframe)
+}
+
+pub(crate) async fn get_timeframe_monthly(
+    con: &mut PgConnection,
+    monthly_id: i32,
+) -> Result<TimeframeMonthly<HasId>, DBError> {
+    sqlx::query_as!(
+        TimeframeMonthly::<HasId>,
+        "SELECT monthly_id, start_dom, start_time, end_dom, end_time FROM timeframe_monthly WHERE monthly_id = $1;", monthly_id)
+        .fetch_one(con)
+        .await
+        .map_err(DBError::CannotSelectTimeframe)
+}
+
+pub(crate) async fn get_timeframes(
+    pool: PgPool,
+    forward_id: i32,
+) -> Result<Vec<Timeframe<HasId>>, DBError> {
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|_| DBError::CannotStartTransaction)?;
+    let timeframe_ids = sqlx::query!(
+        "SELECT once_id, daily_id, weekly_id, monthly_id from map_call_forward_timeframe WHERE fwd_id = $1;",
+        forward_id)
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(DBError::CannotSelectTimeframeMap)?;
+
+    let mut res = Vec::<Timeframe<HasId>>::with_capacity(timeframe_ids.len());
+
+    for id in timeframe_ids {
+        let timeframe = if let Some(once_id) = id.once_id {
+            Timeframe::Once(get_timeframe_once(&mut *tx, once_id).await?)
+        } else if let Some(daily_id) = id.daily_id {
+            Timeframe::Daily(get_timeframe_daily(&mut *tx, daily_id).await?)
+        } else if let Some(weekly_id) = id.weekly_id {
+            Timeframe::Weekly(get_timeframe_weekly(&mut *tx, weekly_id).await?)
+        } else if let Some(monthly_id) = id.monthly_id {
+            Timeframe::Monthly(get_timeframe_monthly(&mut *tx, monthly_id).await?)
+        } else {
+            return Err(DBError::NoTimeframeType);
+        };
+        res.push(timeframe);
+    };
+
+    Ok(res)
+}

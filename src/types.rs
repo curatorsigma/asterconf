@@ -178,13 +178,16 @@ pub(crate) struct TimeframeOnce<S>
 where
     S: IdState,
 {
-    once_id: S,
+    pub(crate) once_id: S,
     /// UTC datetime when this timeframe starts
     pub(crate) start_time: PrimitiveDateTime,
     /// UTC datetime when this timeframe ends
     pub(crate) end_time: PrimitiveDateTime,
 }
-impl<S> TimeframeOnce<S> where S: IdState, {
+impl<S> TimeframeOnce<S>
+where
+    S: IdState,
+{
     pub(crate) fn currently_active(&self) -> bool {
         let now = time::UtcDateTime::now();
         self.start_time.as_utc() <= now && now <= self.end_time.as_utc()
@@ -192,11 +195,15 @@ impl<S> TimeframeOnce<S> where S: IdState, {
 }
 impl TimeframeOnce<NoId> {
     pub(crate) fn add_id(self, id: i32) -> TimeframeOnce<HasId> {
-        TimeframeOnce { once_id: id.into(), start_time: self.start_time, end_time: self.end_time, }
+        TimeframeOnce {
+            once_id: id.into(),
+            start_time: self.start_time,
+            end_time: self.end_time,
+        }
     }
     pub(crate) fn new(start_time: PrimitiveDateTime, end_time: PrimitiveDateTime) -> Self {
         Self {
-            once_id: NoId {  },
+            once_id: NoId {},
             start_time,
             end_time,
         }
@@ -213,11 +220,14 @@ pub(crate) struct TimeframeDaily<S>
 where
     S: IdState,
 {
-    daily_id: S,
+    pub(crate) daily_id: S,
     pub(crate) start_time: Time,
     pub(crate) end_time: Time,
 }
-impl<S> TimeframeDaily<S> where S: IdState, {
+impl<S> TimeframeDaily<S>
+where
+    S: IdState,
+{
     pub(crate) fn currently_active(&self) -> bool {
         let now = time::UtcDateTime::now();
         self.start_time <= now.time() && now.time() <= self.end_time
@@ -225,11 +235,15 @@ impl<S> TimeframeDaily<S> where S: IdState, {
 }
 impl TimeframeDaily<NoId> {
     pub(crate) fn add_id(self, id: i32) -> TimeframeDaily<HasId> {
-        TimeframeDaily{ daily_id: id.into(), start_time: self.start_time, end_time: self.end_time, }
+        TimeframeDaily {
+            daily_id: id.into(),
+            start_time: self.start_time,
+            end_time: self.end_time,
+        }
     }
     pub(crate) fn new(start_time: Time, end_time: Time) -> Self {
         Self {
-            daily_id: NoId {  },
+            daily_id: NoId {},
             start_time,
             end_time,
         }
@@ -271,13 +285,16 @@ pub(crate) struct TimeframeWeekly<S>
 where
     S: IdState,
 {
-    weekly_id: S,
+    pub(crate) weekly_id: S,
     pub(crate) start_dow: DayOfWeek,
     pub(crate) start_time: Time,
     pub(crate) end_dow: DayOfWeek,
     pub(crate) end_time: Time,
 }
-impl<S> TimeframeWeekly<S> where S: IdState, {
+impl<S> TimeframeWeekly<S>
+where
+    S: IdState,
+{
     pub(crate) fn currently_active(&self) -> bool {
         let now = time::UtcDateTime::now();
         let now_dow: DayOfWeek = now.date().weekday().into();
@@ -294,16 +311,22 @@ impl<S> TimeframeWeekly<S> where S: IdState, {
 }
 impl TimeframeWeekly<NoId> {
     pub(crate) fn add_id(self, id: i32) -> TimeframeWeekly<HasId> {
-        TimeframeWeekly{
+        TimeframeWeekly {
             weekly_id: id.into(),
             start_dow: self.start_dow,
             start_time: self.start_time,
             end_dow: self.end_dow,
-            end_time: self.end_time, }
+            end_time: self.end_time,
+        }
     }
-    pub(crate) fn new(start_dow: DayOfWeek, start_time: Time, end_dow: DayOfWeek, end_time: Time) -> Self {
+    pub(crate) fn new(
+        start_dow: DayOfWeek,
+        start_time: Time,
+        end_dow: DayOfWeek,
+        end_time: Time,
+    ) -> Self {
         Self {
-            weekly_id: NoId {  },
+            weekly_id: NoId {},
             start_dow,
             start_time,
             end_dow,
@@ -322,7 +345,7 @@ pub(crate) struct TimeframeMonthly<S>
 where
     S: IdState,
 {
-    monthly_id: S,
+    pub(crate) monthly_id: S,
     /// Note: DOM being viable (an actual day of month) is not enforced, since we do not know how
     /// long an individual month is anyways. so setting `end_dom = 60` is the same as setting it to
     /// `28` in february.
@@ -331,7 +354,10 @@ where
     pub(crate) end_dom: i16,
     pub(crate) end_time: Time,
 }
-impl<S> TimeframeMonthly<S> where S: IdState, {
+impl<S> TimeframeMonthly<S>
+where
+    S: IdState,
+{
     /// The current timestamp is between start_dom,start_time and end_dom,end_time
     pub(crate) fn currently_active(&self) -> bool {
         let now = time::UtcDateTime::now();
@@ -349,16 +375,17 @@ impl<S> TimeframeMonthly<S> where S: IdState, {
 }
 impl TimeframeMonthly<NoId> {
     pub(crate) fn add_id(self, id: i32) -> TimeframeMonthly<HasId> {
-        TimeframeMonthly{
+        TimeframeMonthly {
             monthly_id: id.into(),
             start_dom: self.start_dom,
             start_time: self.start_time,
             end_dom: self.end_dom,
-            end_time: self.end_time, }
+            end_time: self.end_time,
+        }
     }
     pub(crate) fn new(start_dom: i16, start_time: Time, end_dom: i16, end_time: Time) -> Self {
         Self {
-            monthly_id: NoId {  },
+            monthly_id: NoId {},
             start_dom,
             start_time,
             end_dom,
@@ -372,15 +399,19 @@ impl TimeframeMonthly<HasId> {
     }
 }
 
-enum Timeframe<S>
-where S: IdState,
+pub(crate) enum Timeframe<S>
+where
+    S: IdState,
 {
     Once(TimeframeOnce<S>),
     Daily(TimeframeDaily<S>),
     Weekly(TimeframeWeekly<S>),
     Monthly(TimeframeMonthly<S>),
 }
-impl<S> Timeframe<S> where S: IdState, {
+impl<S> Timeframe<S>
+where
+    S: IdState,
+{
     /// The current time is in this timeframe.
     ///
     /// All times in Timeframe are interpreted as UTC.

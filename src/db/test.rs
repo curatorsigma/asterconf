@@ -1,7 +1,12 @@
 use sqlx::{PgPool, Row};
-use time::{macros::{date, time}, PrimitiveDateTime};
+use time::{
+    macros::{date, time},
+    PrimitiveDateTime,
+};
 
-use crate::types::{CallForward, Config, Context, DayOfWeek, Extension, NoId, TimeframeDaily, TimeframeMonthly, TimeframeOnce, TimeframeWeekly};
+use crate::types::{
+    CallForward, Config, Context, DayOfWeek, Extension, NoId, Timeframe, TimeframeDaily, TimeframeMonthly, TimeframeOnce, TimeframeWeekly
+};
 
 #[sqlx::test]
 async fn auth_test(pool: PgPool) -> sqlx::Result<()> {
@@ -183,8 +188,12 @@ async fn update_call_forward_delete_context(
 
 #[sqlx::test(fixtures("empty"))]
 async fn test_insert_timeframe_once(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    let new_timeframe = TimeframeOnce::new(PrimitiveDateTime::new(date!(2023-01-15), time!(10:30)), PrimitiveDateTime::new(date!(2023-02-15), time!(10:45)));
-    let inserted_timeframe = super::insert_timeframe_once(pool, new_timeframe).await?;
+    let new_timeframe = TimeframeOnce::new(
+        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)),
+        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)),
+    );
+    let inserted_timeframe =
+        super::insert_timeframe_once(&mut pool.acquire().await.unwrap(), new_timeframe).await?;
     assert_eq!(inserted_timeframe.id(), 1);
     Ok(())
 }
@@ -192,15 +201,22 @@ async fn test_insert_timeframe_once(pool: PgPool) -> Result<(), Box<dyn std::err
 #[sqlx::test(fixtures("empty"))]
 async fn test_insert_timeframe_daily(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let new_timeframe = TimeframeDaily::new(time!(10:30), time!(15:53));
-    let inserted_timeframe = super::insert_timeframe_daily(pool, new_timeframe).await?;
+    let inserted_timeframe =
+        super::insert_timeframe_daily(&mut pool.acquire().await.unwrap(), new_timeframe).await?;
     assert_eq!(inserted_timeframe.id(), 1);
     Ok(())
 }
 
 #[sqlx::test(fixtures("empty"))]
 async fn test_insert_timeframe_weekly(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    let new_timeframe = TimeframeWeekly::new(DayOfWeek::Monday, time!(10:30), DayOfWeek::Thursday, time!(15:53));
-    let inserted_timeframe = super::insert_timeframe_weekly(pool, new_timeframe).await?;
+    let new_timeframe = TimeframeWeekly::new(
+        DayOfWeek::Monday,
+        time!(10:30),
+        DayOfWeek::Thursday,
+        time!(15:53),
+    );
+    let inserted_timeframe =
+        super::insert_timeframe_weekly(&mut pool.acquire().await.unwrap(), new_timeframe).await?;
     assert_eq!(inserted_timeframe.id(), 1);
     Ok(())
 }
@@ -208,8 +224,35 @@ async fn test_insert_timeframe_weekly(pool: PgPool) -> Result<(), Box<dyn std::e
 #[sqlx::test(fixtures("empty"))]
 async fn test_insert_timeframe_monthly(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let new_timeframe = TimeframeMonthly::new(12, time!(10:30), 18, time!(15:53));
-    let inserted_timeframe = super::insert_timeframe_monthly(pool, new_timeframe).await?;
+    let inserted_timeframe =
+        super::insert_timeframe_monthly(&mut pool.acquire().await.unwrap(), new_timeframe).await?;
     assert_eq!(inserted_timeframe.id(), 1);
+    Ok(())
+}
+
+#[sqlx::test(fixtures("call_forward"))]
+async fn insert_timeframe_enum(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let timeframe_once = Timeframe::Once(TimeframeOnce::new(
+        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)),
+        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)),
+    ));
+    let timeframe_daily = Timeframe::Daily(TimeframeDaily::new(time!(10:30), time!(15:53)));
+    let timeframe_weekly = Timeframe::Weekly(TimeframeWeekly::new(
+        DayOfWeek::Monday,
+        time!(10:30),
+        DayOfWeek::Thursday,
+        time!(15:53),
+    ));
+    let timeframe_monthly = Timeframe::Monthly(TimeframeMonthly::new(12, time!(10:30), 18, time!(15:53)));
+    super::add_timeframe_to_forward(pool.clone(), 1, timeframe_once).await?;
+    super::add_timeframe_to_forward(pool.clone(), 2, timeframe_daily).await?;
+    super::add_timeframe_to_forward(pool.clone(), 3, timeframe_weekly).await?;
+    super::add_timeframe_to_forward(pool.clone(), 4, timeframe_monthly).await?;
+
+    assert_eq!(super::get_timeframes(pool.clone(), 1).await?.len(), 1);
+    assert_eq!(super::get_timeframes(pool.clone(), 2).await?.len(), 1);
+    assert_eq!(super::get_timeframes(pool.clone(), 3).await?.len(), 1);
+    assert_eq!(super::get_timeframes(pool.clone(), 4).await?.len(), 1);
     Ok(())
 }
 
