@@ -143,19 +143,24 @@ fn convert_to_call_forwards(
         let fwd_id: i32 = row.get("fwd_id");
         let from_extension: String = row.get("from_extension");
         let to_extension: String = row.get("to_extension");
-        let context: String = row.get("context");
+        let context: Option<String> = row.get("context");
         for fwd in result.iter_mut() {
             if fwd.to.extension == to_extension && fwd.from.extension == from_extension {
-                let context_as_object = Context::create_from_name(config, &context);
-                match context_as_object {
-                    None => {
-                        return Err(DBError::ContextDoesNotExist(context));
+                match context {
+                    None => {}
+                    Some(context_name) =>{
+                        let context_as_object = Context::create_from_name(config, &context_name);
+                        match context_as_object {
+                            None => {
+                                return Err(DBError::ContextDoesNotExist(context_name));
+                            }
+                            Some(x) => {
+                                fwd.in_contexts.push(x);
+                                continue 'row;
+                            }
+                        };
                     }
-                    Some(x) => {
-                        fwd.in_contexts.push(x);
-                        continue 'row;
-                    }
-                };
+                }
             };
         }
         // this destination has no call forward already set
@@ -164,7 +169,7 @@ fn convert_to_call_forwards(
             config,
             from_extension,
             to_extension,
-            vec![context],
+            if let Some(context_name) = context { vec![context_name] } else { vec![] },
             fwd_id,
         )?);
     }
@@ -217,7 +222,7 @@ pub async fn get_call_forward_by_id<'a>(
     let call_forwards = sqlx::query(
         "SELECT call_forward.fwd_id, call_forward.from_extension, call_forward.to_extension, map_call_forward_context.context
             FROM call_forward
-         INNER JOIN map_call_forward_context
+         LEFT JOIN map_call_forward_context
             ON map_call_forward_context.fwd_id = call_forward.fwd_id
         WHERE
             call_forward.fwd_id = $1"
