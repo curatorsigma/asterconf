@@ -35,6 +35,7 @@ pub enum DBError {
     CannotSelectTimeframeMap(sqlx::Error),
     NoTimeframeType,
     CannotSelectTimeframe(sqlx::Error),
+    CannotDeleteTimeframe(sqlx::Error),
 }
 impl Display for DBError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -101,6 +102,9 @@ impl Display for DBError {
             }
             Self::CannotSelectTimeframe(e) => {
                 write!(f, "Unable to select Timeframe: {e}")
+            }
+            Self::CannotDeleteTimeframe(e) => {
+                write!(f, "Unable to delete a timeframe: {e}")
             }
         }
     }
@@ -627,3 +631,44 @@ pub(crate) async fn get_timeframes(
 
     Ok(res)
 }
+
+pub(crate) async fn unlink_timeframe_once(pool: PgPool, once_id: i32) -> Result<(), DBError> {
+    // the DB is on delete cascade for all timeframes
+    sqlx::query!("DELETE FROM timeframe_once WHERE once_id = $1;",
+        once_id)
+        .execute(&pool)
+        .await
+        .map_err(DBError::CannotDeleteTimeframe)?;
+    Ok(())
+}
+
+pub(crate) async fn unlink_timeframe_daily(pool: PgPool, daily_id: i32) -> Result<(), DBError> {
+    // the DB is on delete cascade for all timeframes
+    sqlx::query!("DELETE FROM timeframe_daily WHERE daily_id = $1;",
+        daily_id)
+        .execute(&pool)
+        .await
+        .map_err(DBError::CannotDeleteTimeframe)?;
+    Ok(())
+}
+
+pub(crate) async fn unlink_timeframe_weekly(pool: PgPool, weekly_id: i32) -> Result<(), DBError> {
+    // the DB is on delete cascade for all timeframes
+    sqlx::query!("DELETE FROM timeframe_weekly WHERE weekly_id = $1;",
+        weekly_id)
+        .execute(&pool)
+        .await
+        .map_err(DBError::CannotDeleteTimeframe)?;
+    Ok(())
+}
+
+pub(crate) async fn unlink_timeframe_monthly(pool: PgPool, monthly_id: i32) -> Result<(), DBError> {
+    // the DB is on delete cascade for all timeframes
+    sqlx::query!("DELETE FROM timeframe_monthly WHERE monthly_id = $1;",
+        monthly_id)
+        .execute(&pool)
+        .await
+        .map_err(DBError::CannotDeleteTimeframe)?;
+    Ok(())
+}
+

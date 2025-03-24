@@ -424,6 +424,16 @@ where
         }
     }
 }
+impl Timeframe<HasId> {
+    pub(crate) fn id(&self) -> i32 {
+        match self {
+            Self::Once(x) => x.id(),
+            Self::Daily(x) => x.id(),
+            Self::Weekly(x) => x.id(),
+            Self::Monthly(x) => x.id(),
+        }
+    }
+}
 
 #[derive(Deserialize)]
 struct ConfigFileData {
