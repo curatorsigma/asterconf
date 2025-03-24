@@ -8,11 +8,12 @@ authors = ["Jonathan Schleucher"]
 serde = { version = "1.0.208", features = ["derive"] }
 serde_yaml = "0.9.34"
 tokio = { version = "1.39.3", features = ["full"] }
-sqlx = { version = "0.8.1", features = ["sqlite", "postgres", "runtime-tokio-rustls"] }
-time = { version = "0.3.36", features = ["formatting", "local-offset", "macros"] }
+sqlx = { version = "0.8.1", default-features=false, features = ["sqlite", "postgres", "runtime-tokio-rustls", "time"] }
+time = { version = "0.3.41", features = ["formatting", "local-offset", "macros", "std"] }
 tracing = { version = "0.1.40", features = ["attributes"] }
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["time", "fmt", "env-filter"] }
+# try removing this
 chrono = "0.4.38"
 blazing_agi = { version = "0.3.1", features = ["tracing"]}
 blazing_agi_macros = { version = "0.1.0" }

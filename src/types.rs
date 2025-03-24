@@ -4,10 +4,11 @@ use std::path::Path;
 use std::{collections::HashMap, fmt::Display};
 
 use axum_server::tls_rustls::RustlsConfig;
+use chrono::{Datelike, NaiveTime, Timelike};
 /// Structs used by the other components
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use time::{PrimitiveDateTime, Time};
+use time::{PrimitiveDateTime, Time, Weekday};
 use tracing::{event, Level};
 
 use crate::db::DBError;
@@ -184,6 +185,12 @@ where
     /// UTC datetime when this timeframe ends
     pub(crate) end_time: PrimitiveDateTime,
 }
+impl<S> TimeframeOnce<S> where S: IdState, {
+    pub(crate) fn currently_active(&self) -> bool {
+        let now = time::UtcDateTime::now();
+        self.start_time.as_utc() <= now && now <= self.end_time.as_utc()
+    }
+}
 impl TimeframeOnce<NoId> {
     pub(crate) fn add_id(self, id: i32) -> TimeframeOnce<HasId> {
         TimeframeOnce { once_id: id.into(), start_time: self.start_time, end_time: self.end_time, }
@@ -211,6 +218,12 @@ where
     pub(crate) start_time: Time,
     pub(crate) end_time: Time,
 }
+impl<S> TimeframeDaily<S> where S: IdState, {
+    pub(crate) fn currently_active(&self) -> bool {
+        let now = time::UtcDateTime::now();
+        self.start_time <= now.time() && now.time() <= self.end_time
+    }
+}
 impl TimeframeDaily<NoId> {
     pub(crate) fn add_id(self, id: i32) -> TimeframeDaily<HasId> {
         TimeframeDaily{ daily_id: id.into(), start_time: self.start_time, end_time: self.end_time, }
@@ -229,7 +242,7 @@ impl TimeframeDaily<HasId> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, sqlx::Type, Deserialize, Serialize)]
 #[sqlx(type_name = "DAYOFWEEK")]
 pub(crate) enum DayOfWeek {
     Monday,
@@ -240,6 +253,20 @@ pub(crate) enum DayOfWeek {
     Saturday,
     Sunday,
 }
+impl From<Weekday> for DayOfWeek {
+    fn from(value: Weekday) -> Self {
+        match value {
+            Weekday::Monday => DayOfWeek::Monday,
+            Weekday::Tuesday => DayOfWeek::Tuesday,
+            Weekday::Wednesday => DayOfWeek::Wednesday,
+            Weekday::Thursday => DayOfWeek::Thursday,
+            Weekday::Friday => DayOfWeek::Friday,
+            Weekday::Saturday => DayOfWeek::Saturday,
+            Weekday::Sunday => DayOfWeek::Sunday,
+        }
+    }
+}
+
 #[derive(Debug, sqlx::FromRow)]
 pub(crate) struct TimeframeWeekly<S>
 where
@@ -250,6 +277,21 @@ where
     pub(crate) start_time: Time,
     pub(crate) end_dow: DayOfWeek,
     pub(crate) end_time: Time,
+}
+impl<S> TimeframeWeekly<S> where S: IdState, {
+    pub(crate) fn currently_active(&self) -> bool {
+        let now = time::UtcDateTime::now();
+        let now_dow: DayOfWeek = now.date().weekday().into();
+        if self.start_dow < now_dow && now_dow < self.end_dow {
+            true
+        } else if self.start_dow == now_dow && self.start_time <= now.time() {
+            true
+        } else if self.end_dow == now_dow && self.end_time >= now.time() {
+            true
+        } else {
+            false
+        }
+    }
 }
 impl TimeframeWeekly<NoId> {
     pub(crate) fn add_id(self, id: i32) -> TimeframeWeekly<HasId> {
@@ -290,6 +332,22 @@ where
     pub(crate) end_dom: i16,
     pub(crate) end_time: Time,
 }
+impl<S> TimeframeMonthly<S> where S: IdState, {
+    /// The current timestamp is between start_dom,start_time and end_dom,end_time
+    pub(crate) fn currently_active(&self) -> bool {
+        let now = time::UtcDateTime::now();
+        // now.day() returns in 1-31, which safely casts to i16
+        if self.start_dom < (now.day() as i16) && (now.day() as i16) < self.end_dom {
+            true
+        } else if self.start_dom == (now.day() as i16) && self.start_time <= now.time() {
+            true
+        } else if self.end_dom == (now.day() as i16) && self.end_time >= now.time() {
+            true
+        } else {
+            false
+        }
+    }
+}
 impl TimeframeMonthly<NoId> {
     pub(crate) fn add_id(self, id: i32) -> TimeframeMonthly<HasId> {
         TimeframeMonthly{
@@ -312,6 +370,28 @@ impl TimeframeMonthly<NoId> {
 impl TimeframeMonthly<HasId> {
     pub(crate) fn id(&self) -> i32 {
         self.monthly_id.into()
+    }
+}
+
+enum Timeframe<S>
+where S: IdState,
+{
+    Once(TimeframeOnce<S>),
+    Daily(TimeframeDaily<S>),
+    Weekly(TimeframeWeekly<S>),
+    Monthly(TimeframeMonthly<S>),
+}
+impl<S> Timeframe<S> where S: IdState, {
+    /// The current time is in this timeframe.
+    ///
+    /// All times in Timeframe are interpreted as UTC.
+    pub(crate) fn currently_active(&self) -> bool {
+        match self {
+            Self::Once(x) => x.currently_active(),
+            Self::Daily(x) => x.currently_active(),
+            Self::Weekly(x) => x.currently_active(),
+            Self::Monthly(x) => x.currently_active(),
+        }
     }
 }
 
