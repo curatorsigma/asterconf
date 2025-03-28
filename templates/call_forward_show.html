@@ -1,4 +1,5 @@
-<div class="tr flex justify-evenly w-full p-2 border-zinc-400 border-2">
+<div class="forward-wrapper w-full p-2 border-zinc-400 border-t-0 border-2">
+<div class="tr flex justify-evenly">
 	<div class="td w-40 text-neutral-200 font-mono border-2 flex flex-col justify-center text-balance">{{ fwd.from }}</div>
 	<div class="td w-40 text-neutral-200 font-mono border-2 flex flex-col justify-center text-balance">{{ fwd.to }}</div>
 	{% for ctx in contexts %}
@@ -10,6 +11,23 @@
 			{% endif %}
 		</div>
 	{% endfor %}
+
+	{% if fwd.timeframes.len() > 0 %}
+	{% if fwd.most_specific_active_timeframe().is_some() %}
+		<div class="td flex justify-center text-lime-400 w-20">
+			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-12">
+<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+			<div>({{fwd.timeframes.len()}})</div>
+		</div>
+	{% else %}
+		<div class="td flex justify-center text-neutral-200 w-20">
+			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-12">
+<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+			<div>({{fwd.timeframes.len()}})</div>
+		</div>
+	{% endif %}
+	{% endif %}
+
 	<div class="td w-36 flex justify-center">
 	<button
 		hx-get="/web/call-forward/{{ fwd.fwd_id }}/edit"
@@ -38,4 +56,26 @@
 			>Lade.</span>
 		</div>
 	</div>
+</div>
+
+<div class="timeframes-wrapper flex justify-center flex-col">
+	{% for tf in fwd.timeframes %}
+		{{ tf.display() }}
+	{% endfor %}
+	<div class="new-button-flex-zone flex justify-center">
+	<div
+		id="new-timeframe-{{fwd.fwd_id}}"
+		class="rounded-lg hover:rounded-2xl focus:rounded-2xl bg-lime-700/70 hover:bg-lime-700/70 focus:bg-lime-700 h-12 w-20 flex justify-center"
+		hx-get="/web/timeframe/new?fwd_id={{ fwd.fwd_id }}"
+		hx-target="closest .new-button-flex-zone"
+		hx-swap="beforebegin"
+		hx-target-error="#error_display"
+		>
+		<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-12">
+<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+		<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+	</div>
+	</div>
+</div>
 </div>

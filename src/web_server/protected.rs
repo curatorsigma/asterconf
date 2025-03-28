@@ -3,14 +3,14 @@ use std::sync::Arc;
 use askama::Template;
 /// The routes protected by a login
 use axum::{
-    routing::{get, post},
+    routing::{delete, get, post},
     Extension, Router,
 };
 use uuid::Uuid;
 
-use crate::types::{CallForward, Config, Context, HasId};
+use crate::types::{CallForward, CallForwardWithTimeframes, Config, Context, HasId};
 
-fn error_display(s: &str) -> String {
+pub(super) fn error_display(s: &str) -> String {
     // we cannot control hx-swap separately for hx-target and hx-target-error
     // so we swap outer-html and add the surrounding div all the time
     format!("<div class=\"text-red-500 flex justify-center\" id=\"error_display\" _=\"on htmx:beforeSend from elsewhere set my innerHTML to ''\">{}</div>", s)
@@ -39,33 +39,32 @@ pub(crate) fn create_protected_router() -> Router {
             "/web/search-extension/to",
             post(self::post::to_search_extension),
         )
-        // TODO:
-        // get the html
-        // post the form data to create new
-        // .route("/web/call-forward/:fwdid/timeframe/new", get().post())
-        // je für alle vier typen:
-        // get the html
-        // delete to delete
-        // .route("/web/call-forward/:fwdid/timeframe/once/:timeframeid", get().post().delete())
-        // get the html (editable form)
-        // post to edit
-        // .route("/web/call-forward/:fwdid/timeframe/once/:timeframeid/edit", get().post())
-        // TODO change:
-        // - root / call-forward show green/grey for the timeframe active/inactive; reload these
-        // every 5m
+        .route(
+            "/web/timeframe/new", get(super::timeframe::new_template)
+            )
+        .route(
+            "/web/timeframe/once/new", get(super::timeframe::once_new_template).post(super::timeframe::once_new_post)
+            )
+        .route("/web/timeframe/once/:timeframeid", get(super::timeframe::once_show_template))
+        .route(
+            "/web/timeframe/once/:timeframeid/edit", get(super::timeframe::once_edit_template).post(super::timeframe::once_edit_post)
+        )
+        .route(
+            "/web/timeframe/once/:timeframeid/delete", delete(super::timeframe::once_delete)
+        )
 }
 
 #[derive(Template)]
-#[template(path = "call_forward_show.html")]
-struct SingleCallForwardShowTemplate<'a> {
-    fwd: CallForward<'a, HasId>,
-    contexts: Vec<&'a Context>,
+#[template(path = "call_forward_show.html", escape="none")]
+pub(crate) struct SingleCallForwardShowTemplate<'a> {
+    pub(crate) fwd: CallForwardWithTimeframes<'a>,
+    pub(crate) contexts: Vec<&'a Context>,
 }
 
 pub(super) mod get {
     use crate::{
         db::{get_all_call_forwards, get_call_forward_by_id},
-        types::{CallForward, Context, HasId},
+        types::{CallForward, CallForwardWithTimeframes, Context, HasId},
         web_server::{login::AuthSession, InternalServerErrorTemplate},
     };
 
@@ -78,10 +77,10 @@ pub(super) mod get {
     use uuid::Uuid;
 
     #[derive(Template)]
-    #[template(path = "landing.html")]
+    #[template(path = "landing.html", escape="none")]
     struct LandingTemplate<'a> {
         username: String,
-        existing_forwards: Vec<CallForward<'a, HasId>>,
+        existing_forwards: Vec<CallForwardWithTimeframes<'a>>,
         contexts: Vec<&'a Context>,
     }
 
@@ -106,9 +105,28 @@ pub(super) mod get {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
 
+                let mut forwards_with_id =
+                    Vec::<CallForwardWithTimeframes>::with_capacity(forwards.len());
+                for fwd in forwards {
+                    let fwd_with_ids = match fwd.try_into_with_timeframes(config.pool.clone()).await
+                    {
+                        Ok(x) => x,
+                        Err(e) => {
+                            let error_uuid = Uuid::new_v4();
+                            warn!("Sending internal server error because there was a problem getting timeframes for call forwards.");
+                            warn!("DBError: {e} Error-UUID: {error_uuid}");
+                            return (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                InternalServerErrorTemplate { error_uuid },
+                            )
+                                .into_response();
+                        }
+                    };
+                    forwards_with_id.push(fwd_with_ids);
+                }
                 LandingTemplate {
                     username: user.username,
-                    existing_forwards: forwards,
+                    existing_forwards: forwards_with_id,
                     contexts,
                 }
                 .into_response()
@@ -136,7 +154,19 @@ pub(super) mod get {
             Ok(fwd) => {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
-                SingleCallForwardShowTemplate { fwd, contexts }
+                let with_timeframes = match fwd.try_into_with_timeframes(config.pool.clone()).await {
+                    Ok(x) => x,
+                    Err(e) => {
+                        let error_uuid = Uuid::new_v4();
+                        warn!("Sending internal server error because there was a problem getting timeframes for a call forward: {e}. Error-UUID: {error_uuid}");
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            InternalServerErrorTemplate { error_uuid },
+                        )
+                            .into_response();
+                    }
+                };
+                SingleCallForwardShowTemplate { fwd: with_timeframes, contexts }
             }
             .into_response(),
             Err(e) => {
@@ -153,9 +183,9 @@ pub(super) mod get {
     }
 
     #[derive(Template)]
-    #[template(path = "call_forward_edit.html")]
+    #[template(path = "call_forward_edit.html", escape="none")]
     struct SingleCallForwardEditTemplate<'a> {
-        current_forward: Option<CallForward<'a, HasId>>,
+        current_forward: Option<CallForwardWithTimeframes<'a>>,
         contexts: Vec<&'a Context>,
     }
 
@@ -170,8 +200,20 @@ pub(super) mod get {
             Ok(current_forward) => {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
+                let with_timeframes = match current_forward.try_into_with_timeframes(config.pool.clone()).await {
+                    Ok(y) => y,
+                    Err(e) => {
+                        let error_uuid = Uuid::new_v4();
+                        warn!("Sending internal server error because there was a problem getting timeframes for a call forward: {e}. Error-UUID: {error_uuid}");
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            InternalServerErrorTemplate { error_uuid },
+                        )
+                            .into_response();
+                    }
+                };
                 SingleCallForwardEditTemplate {
-                    current_forward: Some(current_forward),
+                    current_forward: Some(with_timeframes),
                     contexts,
                 }
             }
@@ -275,7 +317,19 @@ pub(super) mod post {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
                 info!("{} Inserted a new call forward: {}->{}@{:?}", session.user.expect("route should be protected").username, x.from.extension, x.to.extension, x.in_contexts);
-                SingleCallForwardShowTemplate { fwd: x, contexts }.into_response()
+                let with_timeframes = match x.try_into_with_timeframes(config.pool.clone()).await {
+                    Ok(y) => y,
+                    Err(e) => {
+                        let error_uuid = Uuid::new_v4();
+                        warn!("Sending internal server error because there was a problem getting timeframes for a call forward: {e}. Error-UUID: {error_uuid}");
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            InternalServerErrorTemplate { error_uuid },
+                        )
+                            .into_response();
+                    }
+                };
+                SingleCallForwardShowTemplate { fwd: with_timeframes, contexts }.into_response()
             }
             Err(DBError::OverlappingCallForwards(x, y)) => (
                 StatusCode::BAD_REQUEST,
@@ -341,8 +395,20 @@ pub(super) mod post {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
                 info!("{} Updated a call forward. Is now: {}->{}@{:?}.", session.user.expect("route should be protected").username, forward.from.extension, forward.to.extension, forward.in_contexts);
+                let with_timeframes = match forward.try_into_with_timeframes(config.pool.clone()).await {
+                    Ok(x) => x,
+                    Err(e) => {
+                        let error_uuid = Uuid::new_v4();
+                        warn!("Sending internal server error because there was a problem getting timeframes for a call forward: {e}. Error-UUID: {error_uuid}");
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            InternalServerErrorTemplate { error_uuid },
+                        )
+                            .into_response();
+                    }
+                };
                 SingleCallForwardShowTemplate {
-                    fwd: forward,
+                    fwd: with_timeframes,
                     contexts,
                 }
                 .into_response()

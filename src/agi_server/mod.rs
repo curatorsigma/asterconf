@@ -17,7 +17,7 @@ use tracing::{event, Level};
 
 use crate::{
     db::get_call_forwards_from_startpoint,
-    types::{Config, Extension},
+    types::{CallForwardWithTimeframes, Config, Extension},
 };
 
 #[derive(Debug, Clone)]
@@ -119,8 +119,23 @@ impl AGIHandler for SHA1DigestOverAGI {
     }
 }
 
-/// The route handler for call_forward
+/// Out of a list of possible call forwards, select one of them with the most specific timeframe
+/// that matches this context
+fn most_specific_forward<'a, 'b>(
+    context_name: &str,
+    forwards: &'a Vec<CallForwardWithTimeframes<'b>>,
+) -> Option<&'a CallForwardWithTimeframes<'b>> {
+    forwards
+        .iter()
+        .filter(|fwd| {
+            fwd.in_contexts
+                .iter()
+                .any(|&x| x.asterisk_name == *context_name)
+        })
+        .min_by_key(|fwd| fwd.most_specific_active_timeframe())
+}
 
+/// The route handler for call_forward
 #[derive(Debug)]
 struct HandleCallForward {
     config: Arc<Config>,
@@ -153,45 +168,46 @@ impl AGIHandler for HandleCallForward {
         )
         .await
         .map_err(|e| AGIError::InnerError(Box::new(e)))?;
-
-        // select the first call_forward which has the relevant context set
-        // and use its destination
-        for fwd in call_forwards_from_src.iter() {
-            if fwd
-                .in_contexts
-                .iter()
-                .any(|&x| x.asterisk_name == *context_name)
-            {
-                event!(
-                    Level::INFO,
-                    "Call to {initial_dest} forwarded to {}",
-                    fwd.to.extension
-                );
-                connection
-                    .send_command(SetVariable::new(
-                        "CALL_FORWARDED_TO".to_string(),
-                        fwd.to.extension.to_string(),
-                    ))
-                    .await?;
-                return Ok(());
-            } else {
-                continue;
-            };
+        let mut call_forwards_with_timeframes =
+            Vec::<CallForwardWithTimeframes>::with_capacity(call_forwards_from_src.len());
+        for fwd in call_forwards_from_src {
+            call_forwards_with_timeframes.push(
+                fwd.try_into_with_timeframes(self.config.pool.clone())
+                    .await
+                    .map_err(|e| AGIError::InnerError(Box::new(e)))?,
+            );
         }
-        // do not set a call forward, since no context matches
-        // instead repeat the initial destination as the final destination
-        event!(
-            Level::INFO,
-            "Call to {initial_dest} did not need forwarding - no Context matches the given {}.",
-            context_name
-        );
-        connection
-            .send_command(SetVariable::new(
-                "CALL_FORWARDED_TO".to_string(),
-                initial_dest.to_string(),
-            ))
-            .await?;
-        return Ok(());
+
+        // select the call forward with the correct context set and the most specific timeframe
+        // that is currently active
+        if let Some(forward_via) =
+            most_specific_forward(context_name, &call_forwards_with_timeframes)
+        {
+            event!(
+                Level::INFO,
+                "Call to {initial_dest} forwarded to {}",
+                forward_via.to.extension
+            );
+            connection
+                .send_command(SetVariable::new(
+                    "CALL_FORWARDED_TO".to_string(),
+                    forward_via.to.extension.to_string(),
+                ))
+                .await?;
+        } else {
+            event!(
+                Level::INFO,
+                "Call to {initial_dest} did not need forwarding - no Context matches the given {}.",
+                context_name
+            );
+            connection
+                .send_command(SetVariable::new(
+                    "CALL_FORWARDED_TO".to_string(),
+                    initial_dest.to_string(),
+                ))
+                .await?;
+        };
+        Ok(())
     }
 }
 

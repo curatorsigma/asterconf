@@ -3,14 +3,18 @@ use std::fs::File;
 use std::path::Path;
 use std::{collections::HashMap, fmt::Display};
 
+use askama::Template;
 use axum_server::tls_rustls::RustlsConfig;
 /// Structs used by the other components
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use time::macros::format_description;
 use time::{PrimitiveDateTime, Time, Weekday};
 use tracing::{event, Level};
 
-use crate::db::DBError;
+use crate::db::{get_timeframes, DBError};
+use crate::web_server::protected::SingleCallForwardShowTemplate;
+use crate::web_server::timeframe::{TimeframeDailyEditTemplate, TimeframeDailyTemplate, TimeframeMonthlyEditTemplate, TimeframeMonthlyTemplate, TimeframeOnceEditTemplate, TimeframeOnceTemplate, TimeframeShow, TimeframeTemplateError, TimeframeWeeklyEditTemplate, TimeframeWeeklyTemplate};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct Extension {
@@ -68,11 +72,11 @@ impl Context {
 
 pub trait IdState {}
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct NoId {}
 impl IdState for NoId {}
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct HasId {
     id: i32,
 }
@@ -134,6 +138,20 @@ impl<'a> CallForward<'a, HasId> {
         let without_id = CallForward::<NoId>::new(config, from, to, in_contexts)?;
         Ok(without_id.set_id(fwd_id))
     }
+
+    pub(crate) async fn try_into_with_timeframes(
+        self,
+        pool: PgPool,
+    ) -> Result<CallForwardWithTimeframes<'a>, DBError> {
+        let timeframes = get_timeframes(pool, self.fwd_id.into()).await?;
+        Ok(CallForwardWithTimeframes {
+            fwd_id: self.fwd_id,
+            from: self.from,
+            to: self.to,
+            in_contexts: self.in_contexts,
+            timeframes,
+        })
+    }
 }
 impl<'a> CallForward<'a, NoId> {
     pub fn new(
@@ -173,7 +191,31 @@ impl<'a> CallForward<'a, NoId> {
     }
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct CallForwardWithTimeframes<'a> {
+    pub(crate) fwd_id: HasId,
+    pub(crate) from: Extension,
+    pub(crate) to: Extension,
+    pub(crate) in_contexts: Vec<&'a Context>,
+    pub(crate) timeframes: Vec<Timeframe<HasId>>,
+}
+impl<'a> CallForwardWithTimeframes<'a> {
+    pub(crate) fn most_specific_active_timeframe(&self) -> Option<&Timeframe<HasId>> {
+        self.timeframes
+            .iter()
+            .filter(|t| t.currently_active())
+            .min()
+    }
+
+    pub(crate) fn show(&self, contexts: &Vec<&'a Context>) -> String {
+        SingleCallForwardShowTemplate {
+            fwd: self.clone(),
+            contexts: contexts.to_vec(),
+        }.render().unwrap_or("ERROR".to_owned())
+    }
+}
+
+#[derive(Debug, sqlx::FromRow, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub(crate) struct TimeframeOnce<S>
 where
     S: IdState,
@@ -213,9 +255,29 @@ impl TimeframeOnce<HasId> {
     pub(crate) fn id(&self) -> i32 {
         self.once_id.into()
     }
+
+    /// Display this Timeframe for showing
+    pub(crate) fn inner_display(&self) -> Result<String, TimeframeTemplateError> {
+        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        Ok(TimeframeOnceTemplate {
+            start_time: self.start_time.format(descr)?,
+            end_time: self.end_time.format(descr)?,
+        }
+        .render()?)
+    }
+
+    /// Display this Timeframe for editing
+    pub(crate) fn inner_edit_display(&self) -> Result<String, TimeframeTemplateError> {
+        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        Ok(TimeframeOnceEditTemplate {
+            start_time: self.start_time.format(descr)?,
+            end_time: self.end_time.format(descr)?,
+        }
+        .render()?)
+    }
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub(crate) struct TimeframeDaily<S>
 where
     S: IdState,
@@ -253,6 +315,26 @@ impl TimeframeDaily<HasId> {
     pub(crate) fn id(&self) -> i32 {
         self.daily_id.into()
     }
+
+    /// template out the inner part of the display for this timeframe
+    pub(crate) fn inner_display(&self) -> Result<String, TimeframeTemplateError> {
+        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        Ok(TimeframeDailyTemplate {
+            start_time: self.start_time.format(descr)?,
+            end_time: self.end_time.format(descr)?,
+        }
+        .render()?)
+    }
+
+    /// template out the inner part of the display for this timeframe
+    pub(crate) fn inner_edit_display(&self) -> Result<String, TimeframeTemplateError> {
+        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        Ok(TimeframeDailyEditTemplate {
+            start_time: self.start_time.format(descr)?,
+            end_time: self.end_time.format(descr)?,
+        }
+        .render()?)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, sqlx::Type, Deserialize, Serialize)]
@@ -265,6 +347,19 @@ pub(crate) enum DayOfWeek {
     Friday,
     Saturday,
     Sunday,
+}
+impl DayOfWeek {
+    fn string_repr(&self) -> &'static str {
+        match self {
+            DayOfWeek::Monday => "Monday",
+            DayOfWeek::Tuesday => "Tuesday",
+            DayOfWeek::Wednesday => "Wednesday",
+            DayOfWeek::Thursday => "Thursday",
+            DayOfWeek::Friday => "Friday",
+            DayOfWeek::Saturday => "Saturday",
+            DayOfWeek::Sunday => "Sunday",
+        }
+    }
 }
 impl From<Weekday> for DayOfWeek {
     fn from(value: Weekday) -> Self {
@@ -280,7 +375,7 @@ impl From<Weekday> for DayOfWeek {
     }
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub(crate) struct TimeframeWeekly<S>
 where
     S: IdState,
@@ -338,9 +433,33 @@ impl TimeframeWeekly<HasId> {
     pub(crate) fn id(&self) -> i32 {
         self.weekly_id.into()
     }
+
+    /// template out the inner part of the display for this timeframe
+    pub(crate) fn inner_display(&self) -> Result<String, TimeframeTemplateError> {
+        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        Ok(TimeframeWeeklyTemplate {
+            start_dow: self.start_dow.string_repr(),
+            start_time: self.start_time.format(descr)?,
+            end_dow: self.end_dow.string_repr(),
+            end_time: self.end_time.format(descr)?,
+        }
+        .render()?)
+    }
+
+    /// template out the inner part of the display for this timeframe
+    pub(crate) fn inner_edit_display(&self) -> Result<String, TimeframeTemplateError> {
+        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        Ok(TimeframeWeeklyEditTemplate {
+            start_dow: self.start_dow.string_repr(),
+            start_time: self.start_time.format(descr)?,
+            end_dow: self.end_dow.string_repr(),
+            end_time: self.end_time.format(descr)?,
+        }
+        .render()?)
+    }
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub(crate) struct TimeframeMonthly<S>
 where
     S: IdState,
@@ -397,8 +516,33 @@ impl TimeframeMonthly<HasId> {
     pub(crate) fn id(&self) -> i32 {
         self.monthly_id.into()
     }
+
+    /// template out the inner part of the display for this timeframe
+    pub(crate) fn inner_display(&self) -> Result<String, TimeframeTemplateError> {
+        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        Ok(TimeframeMonthlyTemplate {
+            start_dom: self.start_dom,
+            start_time: self.start_time.format(descr)?,
+            end_dom: self.end_dom,
+            end_time: self.end_time.format(descr)?,
+        }
+        .render()?)
+    }
+
+    /// template out the inner part of the display for this timeframe
+    pub(crate) fn inner_edit_display(&self) -> Result<String, TimeframeTemplateError> {
+        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        Ok(TimeframeMonthlyEditTemplate {
+            start_dom: self.start_dom,
+            start_time: self.start_time.format(descr)?,
+            end_dom: self.end_dom,
+            end_time: self.end_time.format(descr)?,
+        }
+        .render()?)
+    }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum Timeframe<S>
 where
     S: IdState,
@@ -431,6 +575,47 @@ impl Timeframe<HasId> {
             Self::Daily(x) => x.id(),
             Self::Weekly(x) => x.id(),
             Self::Monthly(x) => x.id(),
+        }
+    }
+
+    pub(crate) fn type_name(&self) -> &'static str {
+        match self {
+            Self::Once(_) => "once",
+            Self::Daily(_) => "daily",
+            Self::Weekly(_) => "weekly",
+            Self::Monthly(_) => "monthly",
+        }
+    }
+
+    pub(crate) fn inner_display(&self) -> String {
+        let res = match self {
+            Self::Once(x) => x.inner_display(),
+            Self::Daily(x) => x.inner_display(),
+            Self::Weekly(x) => x.inner_display(),
+            Self::Monthly(x) => x.inner_display(),
+        };
+        match res {
+            Ok(x) => x,
+            Err(_) => "ERROR".to_owned(),
+        }
+    }
+
+    pub(crate) fn display(&self) -> String {
+        TimeframeShow {
+            timeframe: self.clone(),
+        }.render().unwrap_or("ERROR".to_owned())
+    }
+
+    pub(crate) fn inner_edit_display(&self) -> String {
+        let res = match self {
+            Self::Once(x) => x.inner_edit_display(),
+            Self::Daily(x) => x.inner_edit_display(),
+            Self::Weekly(x) => x.inner_edit_display(),
+            Self::Monthly(x) => x.inner_edit_display(),
+        };
+        match res {
+            Ok(x) => x,
+            Err(_) => "????".to_owned(),
         }
     }
 }

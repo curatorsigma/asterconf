@@ -5,7 +5,8 @@ use time::{
 };
 
 use crate::types::{
-    CallForward, Config, Context, DayOfWeek, Extension, NoId, Timeframe, TimeframeDaily, TimeframeMonthly, TimeframeOnce, TimeframeWeekly
+    CallForward, Config, Context, DayOfWeek, Extension, NoId, Timeframe, TimeframeDaily,
+    TimeframeMonthly, TimeframeOnce, TimeframeWeekly,
 };
 
 #[sqlx::test]
@@ -243,7 +244,8 @@ async fn insert_timeframe_enum(pool: PgPool) -> Result<(), Box<dyn std::error::E
         DayOfWeek::Thursday,
         time!(15:53),
     ));
-    let timeframe_monthly = Timeframe::Monthly(TimeframeMonthly::new(12, time!(10:30), 18, time!(15:53)));
+    let timeframe_monthly =
+        Timeframe::Monthly(TimeframeMonthly::new(12, time!(10:30), 18, time!(15:53)));
     super::add_timeframe_to_forward(pool.clone(), 1, timeframe_once).await?;
     super::add_timeframe_to_forward(pool.clone(), 2, timeframe_daily).await?;
     super::add_timeframe_to_forward(pool.clone(), 3, timeframe_weekly).await?;
@@ -269,12 +271,15 @@ async fn unlink_timeframes(pool: PgPool) -> Result<(), Box<dyn std::error::Error
         DayOfWeek::Thursday,
         time!(15:53),
     ));
-    let timeframe_monthly = Timeframe::Monthly(TimeframeMonthly::new(12, time!(10:30), 18, time!(15:53)));
+    let timeframe_monthly =
+        Timeframe::Monthly(TimeframeMonthly::new(12, time!(10:30), 18, time!(15:53)));
 
     let inserted_once = super::add_timeframe_to_forward(pool.clone(), 1, timeframe_once).await?;
     let inserted_daily = super::add_timeframe_to_forward(pool.clone(), 1, timeframe_daily).await?;
-    let inserted_weekly = super::add_timeframe_to_forward(pool.clone(), 1, timeframe_weekly).await?;
-    let inserted_monthly = super::add_timeframe_to_forward(pool.clone(), 2, timeframe_monthly).await?;
+    let inserted_weekly =
+        super::add_timeframe_to_forward(pool.clone(), 1, timeframe_weekly).await?;
+    let inserted_monthly =
+        super::add_timeframe_to_forward(pool.clone(), 2, timeframe_monthly).await?;
 
     assert_eq!(super::get_timeframes(pool.clone(), 1).await?.len(), 3);
     assert_eq!(super::get_timeframes(pool.clone(), 2).await?.len(), 1);
@@ -289,6 +294,82 @@ async fn unlink_timeframes(pool: PgPool) -> Result<(), Box<dyn std::error::Error
     super::unlink_timeframe_weekly(pool.clone(), inserted_weekly.id()).await?;
 
     assert_eq!(super::get_timeframes(pool.clone(), 1).await?.len(), 0);
+    Ok(())
+}
+
+#[sqlx::test(fixtures("call_forward"))]
+async fn update_timeframe(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let timeframe_once = Timeframe::Once(TimeframeOnce::new(
+        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)),
+        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)),
+    ));
+    let timeframe_daily = Timeframe::Daily(TimeframeDaily::new(time!(10:30), time!(15:53)));
+    let timeframe_weekly = Timeframe::Weekly(TimeframeWeekly::new(
+        DayOfWeek::Monday,
+        time!(10:30),
+        DayOfWeek::Thursday,
+        time!(15:53),
+    ));
+    let timeframe_monthly =
+        Timeframe::Monthly(TimeframeMonthly::new(12, time!(10:30), 18, time!(15:53)));
+
+    let mut inserted_once = match super::add_timeframe_to_forward(pool.clone(), 1, timeframe_once).await? {
+        Timeframe::Once(x) => x,
+        _ => { panic!() }
+    };
+    let mut inserted_daily = match super::add_timeframe_to_forward(pool.clone(), 1, timeframe_daily).await? {
+        Timeframe::Daily(x) => x,
+        _ => { panic!() }
+    };
+    let mut inserted_weekly =
+        match super::add_timeframe_to_forward(pool.clone(), 1, timeframe_weekly).await? {
+            Timeframe::Weekly(x) => x,
+            _ => { panic!() }
+        };
+    let mut inserted_monthly =
+        match super::add_timeframe_to_forward(pool.clone(), 1, timeframe_monthly).await? {
+            Timeframe::Monthly(x) => x,
+            _ => { panic!() }
+        };
+
+    inserted_once.end_time = PrimitiveDateTime::new(date!(2022 - 01 - 01), time!(12:47));
+    inserted_daily.start_time = time!(12:47);
+    inserted_weekly.start_dow = DayOfWeek::Tuesday;
+    inserted_monthly.end_dom = 9;
+
+    let mut con = pool.clone().acquire().await?;
+    super::update_timeframe_once(&mut con, &inserted_once).await?;
+    super::update_timeframe_daily(&mut con, &inserted_daily).await?;
+    super::update_timeframe_weekly(&mut con, &inserted_weekly).await?;
+    super::update_timeframe_monthly(&mut con, &inserted_monthly).await?;
+
+    let res = super::get_timeframes(pool.clone(), 1).await?;
+    assert_eq!(res.len(), 4);
+    for tf in res {
+        match tf {
+            Timeframe::Once(x) => {
+                assert_eq!(
+                    x,
+                    inserted_once);
+            }
+            Timeframe::Daily(x) => {
+                assert_eq!(
+                    x,
+                    inserted_daily);
+            }
+            Timeframe::Weekly(x) => {
+                assert_eq!(
+                    x,
+                    inserted_weekly);
+            }
+            Timeframe::Monthly(x) => {
+                assert_eq!(
+                    x,
+                    inserted_monthly);
+            }
+        }
+    };
+
     Ok(())
 }
 

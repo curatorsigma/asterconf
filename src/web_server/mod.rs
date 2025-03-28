@@ -24,7 +24,8 @@ use tracing::{event, Level};
 
 use crate::{ldap::LDAPBackend, types::Config};
 pub(crate) mod login;
-mod protected;
+pub(crate) mod protected;
+pub(crate) mod timeframe;
 
 #[derive(Template)]
 #[template(path = "500.html")]
@@ -42,7 +43,6 @@ impl Webserver {
             .filename(".session_data.db")
             .create_if_missing(true);
         let db = SqlitePool::connect_with(connect_options).await?;
-        sqlx::migrate!().run(&db).await?;
 
         Ok(Self { db })
     }
