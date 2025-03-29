@@ -1,23 +1,16 @@
 //! Everything to do with rendering timeframes for the frond-end and handling the routes for that
 //! Note that some functions are defined in impl blocks in [`crate::types`] and use structs from
 //! here.
-use std::sync::Arc;
 
 use askama::Template;
 use askama_axum::IntoResponse;
-use axum::{extract::{Path, Query}, http::StatusCode, Extension};
-use axum_extra::extract::Form;
+use axum::extract::Query;
 use serde::Deserialize;
-use time::{macros::format_description, PrimitiveDateTime, UtcDateTime};
-use tracing::warn;
-use uuid::Uuid;
 
-use crate::{db::{get_timeframe_once, insert_timeframe, link_timeframe, unlink_timeframe_once, update_timeframe_once}, types::{Config, HasId, Timeframe, TimeframeOnce}, web_server::{protected::error_display, InternalServerErrorTemplate}};
+use crate::types::{HasId, Timeframe};
 
-use super::login::AuthSession;
-
-pub mod once;
 pub mod daily;
+pub mod once;
 
 #[derive(Debug)]
 pub(crate) enum TimeframeTemplateError {
@@ -31,9 +24,15 @@ pub(crate) enum TimeframeTemplateError {
 impl core::fmt::Display for TimeframeTemplateError {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
-            Self::TimeFormat(e) => { write!(f, "Unable to format a known-good instance of time: {e}.") }
-            Self::Render(e) => { write!(f, "Unable to render askama template: {e}.") }
-            Self::TimeConversion(e) => { write!(f, "Unable to convert time to local offset: {e}.") }
+            Self::TimeFormat(e) => {
+                write!(f, "Unable to format a known-good instance of time: {e}.")
+            }
+            Self::Render(e) => {
+                write!(f, "Unable to render askama template: {e}.")
+            }
+            Self::TimeConversion(e) => {
+                write!(f, "Unable to convert time to local offset: {e}.")
+            }
         }
     }
 }
@@ -55,21 +54,21 @@ impl From<time::error::IndeterminateOffset> for TimeframeTemplateError {
 }
 
 #[derive(Template)]
-#[template(path="timeframe/base.html", escape="none")]
+#[template(path = "timeframe/base.html", escape = "none")]
 pub(crate) struct TimeframeShow {
     /// timeframe to show
     pub(crate) timeframe: Timeframe<HasId>,
 }
 
 #[derive(Template)]
-#[template(path="timeframe/timeframe-inner-daily.html")]
+#[template(path = "timeframe/timeframe-inner-daily.html")]
 pub(crate) struct TimeframeDailyTemplate {
     pub start_time: String,
     pub end_time: String,
 }
 
 #[derive(Template)]
-#[template(path="timeframe/timeframe-inner-weekly.html")]
+#[template(path = "timeframe/timeframe-inner-weekly.html")]
 pub(crate) struct TimeframeWeeklyTemplate {
     pub start_dow: &'static str,
     pub start_time: String,
@@ -78,7 +77,7 @@ pub(crate) struct TimeframeWeeklyTemplate {
 }
 
 #[derive(Template)]
-#[template(path="timeframe/timeframe-inner-monthly.html")]
+#[template(path = "timeframe/timeframe-inner-monthly.html")]
 pub(crate) struct TimeframeMonthlyTemplate {
     pub start_dom: i16,
     pub start_time: String,
@@ -87,27 +86,27 @@ pub(crate) struct TimeframeMonthlyTemplate {
 }
 
 #[derive(Template)]
-#[template(path="timeframe_edit/base.html", escape="none")]
+#[template(path = "timeframe_edit/base.html", escape = "none")]
 pub(crate) struct TimeframeEditBase {
     pub current: Timeframe<HasId>,
 }
 
 #[derive(Template)]
-#[template(path="timeframe_edit/timeframe-inner-once.html")]
+#[template(path = "timeframe_edit/timeframe-inner-once.html")]
 pub(crate) struct TimeframeOnceEditTemplate {
     pub start_time: String,
     pub end_time: String,
 }
 
 #[derive(Template)]
-#[template(path="timeframe_edit/timeframe-inner-daily.html")]
+#[template(path = "timeframe_edit/timeframe-inner-daily.html")]
 pub(crate) struct TimeframeDailyEditTemplate {
     pub start_time: String,
     pub end_time: String,
 }
 
 #[derive(Template)]
-#[template(path="timeframe_edit/timeframe-inner-weekly.html")]
+#[template(path = "timeframe_edit/timeframe-inner-weekly.html")]
 pub(crate) struct TimeframeWeeklyEditTemplate {
     pub start_dow: &'static str,
     pub start_time: String,
@@ -116,7 +115,7 @@ pub(crate) struct TimeframeWeeklyEditTemplate {
 }
 
 #[derive(Template)]
-#[template(path="timeframe_edit/timeframe-inner-monthly.html")]
+#[template(path = "timeframe_edit/timeframe-inner-monthly.html")]
 pub(crate) struct TimeframeMonthlyEditTemplate {
     pub start_dom: i16,
     pub start_time: String,
@@ -125,13 +124,13 @@ pub(crate) struct TimeframeMonthlyEditTemplate {
 }
 
 #[derive(Template)]
-#[template(path="timeframe_new/base.html")]
+#[template(path = "timeframe_new/base.html")]
 pub(crate) struct TimeframeNewBase {
     fwd_id: i32,
 }
 
 #[derive(Template)]
-#[template(path="timeframe_new/timeframe-new-weekly.html")]
+#[template(path = "timeframe_new/timeframe-new-weekly.html")]
 pub(crate) struct TimeframeWeeklyNewTemplate {
     /// What time is it now? Used as default in time fields
     now_timestamp: String,
@@ -140,7 +139,7 @@ pub(crate) struct TimeframeWeeklyNewTemplate {
 }
 
 #[derive(Template)]
-#[template(path="timeframe_new/timeframe-new-monthly.html")]
+#[template(path = "timeframe_new/timeframe-new-monthly.html")]
 pub(crate) struct TimeframeMonthlyNewTemplate {
     /// What time is it now? Used as default in time fields
     now_timestamp: String,
@@ -153,9 +152,9 @@ pub(crate) struct FwdIdQuery {
     fwd_id: i32,
 }
 
-pub(crate) async fn new_template(
-        Query(query): Query<FwdIdQuery>,
-    ) -> impl IntoResponse {
-    TimeframeNewBase { fwd_id: query.fwd_id, }.into_response()
+pub(crate) async fn new_template(Query(query): Query<FwdIdQuery>) -> impl IntoResponse {
+    TimeframeNewBase {
+        fwd_id: query.fwd_id,
+    }
+    .into_response()
 }
-

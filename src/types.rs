@@ -9,13 +9,17 @@ use axum_server::tls_rustls::RustlsConfig;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use time::macros::format_description;
-use time::{OffsetDateTime, PrimitiveDateTime, Time, UtcDateTime, Weekday};
-use tracing::{error, event, Level};
+use time::{OffsetDateTime, Time, Weekday};
+use tracing::{event, Level};
 
 use crate::db::{get_timeframes, DBError};
 use crate::web_server::protected::SingleCallForwardShowTemplate;
 use crate::web_server::timeframe::once::TimeframeOnceTemplate;
-use crate::web_server::timeframe::{TimeframeDailyEditTemplate, TimeframeDailyTemplate, TimeframeMonthlyEditTemplate, TimeframeMonthlyTemplate, TimeframeOnceEditTemplate, TimeframeShow, TimeframeTemplateError, TimeframeWeeklyEditTemplate, TimeframeWeeklyTemplate};
+use crate::web_server::timeframe::{
+    TimeframeDailyEditTemplate, TimeframeDailyTemplate, TimeframeMonthlyEditTemplate,
+    TimeframeMonthlyTemplate, TimeframeOnceEditTemplate, TimeframeShow, TimeframeTemplateError,
+    TimeframeWeeklyEditTemplate, TimeframeWeeklyTemplate,
+};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct Extension {
@@ -212,7 +216,9 @@ impl<'a> CallForwardWithTimeframes<'a> {
         SingleCallForwardShowTemplate {
             fwd: self.clone(),
             contexts: contexts.to_vec(),
-        }.render().unwrap_or("ERROR".to_owned())
+        }
+        .render()
+        .unwrap_or("ERROR".to_owned())
     }
 }
 
@@ -322,7 +328,9 @@ where
     S: IdState,
 {
     pub(crate) fn currently_active(&self) -> bool {
-        let now = time::OffsetDateTime::now_local().expect("Error handling from here is very difficult. Should be able to get local offset.");
+        let now = time::OffsetDateTime::now_local().expect(
+            "Error handling from here is very difficult. Should be able to get local offset.",
+        );
         self.start_time <= now.time() && now.time() <= self.end_time
     }
 }
@@ -438,7 +446,9 @@ where
     S: IdState,
 {
     pub(crate) fn currently_active(&self) -> bool {
-        let now = time::OffsetDateTime::now_local().expect("Error handling from here is very difficult. Should be able to get local offset.");
+        let now = time::OffsetDateTime::now_local().expect(
+            "Error handling from here is very difficult. Should be able to get local offset.",
+        );
         let now_dow: DayOfWeek = now.date().weekday().into();
         if self.start_dow < now_dow && now_dow < self.end_dow {
             true
@@ -538,7 +548,9 @@ where
 {
     /// The current timestamp is between start_dom,start_time and end_dom,end_time
     pub(crate) fn currently_active(&self) -> bool {
-        let now = time::OffsetDateTime::now_local().expect("Error handling from here is very difficult. Should be able to get local offset.");
+        let now = time::OffsetDateTime::now_local().expect(
+            "Error handling from here is very difficult. Should be able to get local offset.",
+        );
         // now.day() returns in 1-31, which safely casts to i16
         if self.start_dom < (now.day() as i16) && (now.day() as i16) < self.end_dom {
             true
@@ -662,7 +674,9 @@ impl Timeframe<HasId> {
     pub(crate) fn display(&self) -> String {
         TimeframeShow {
             timeframe: self.clone(),
-        }.render().unwrap_or("ERROR".to_owned())
+        }
+        .render()
+        .unwrap_or("ERROR".to_owned())
     }
 
     pub(crate) fn inner_edit_display(&self) -> String {

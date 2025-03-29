@@ -2,8 +2,8 @@ use std::error::Error;
 /// Functions for reading and writing into the DB
 use std::fmt::Display;
 
-use sqlx::{postgres::PgRow, PgConnection, PgPool, Postgres, Row, Transaction};
-use tracing::{warn, Level};
+use sqlx::{postgres::PgRow, PgConnection, PgPool, Row};
+use tracing::Level;
 
 use crate::types::{
     CallForward, Config, Context, Extension, HasId, NoId, Timeframe, TimeframeDaily,
@@ -629,13 +629,29 @@ pub(crate) async fn get_timeframes(
 
     for id in timeframe_ids {
         let timeframe = if let Some(once_id) = id.once_id {
-            Timeframe::Once(get_timeframe_once(&mut *tx, once_id).await?.ok_or(DBError::TimeframeDoesNotExist(once_id))?)
+            Timeframe::Once(
+                get_timeframe_once(&mut *tx, once_id)
+                    .await?
+                    .ok_or(DBError::TimeframeDoesNotExist(once_id))?,
+            )
         } else if let Some(daily_id) = id.daily_id {
-            Timeframe::Daily(get_timeframe_daily(&mut *tx, daily_id).await?.ok_or(DBError::TimeframeDoesNotExist(daily_id))?)
+            Timeframe::Daily(
+                get_timeframe_daily(&mut *tx, daily_id)
+                    .await?
+                    .ok_or(DBError::TimeframeDoesNotExist(daily_id))?,
+            )
         } else if let Some(weekly_id) = id.weekly_id {
-            Timeframe::Weekly(get_timeframe_weekly(&mut *tx, weekly_id).await?.ok_or(DBError::TimeframeDoesNotExist(weekly_id))?)
+            Timeframe::Weekly(
+                get_timeframe_weekly(&mut *tx, weekly_id)
+                    .await?
+                    .ok_or(DBError::TimeframeDoesNotExist(weekly_id))?,
+            )
         } else if let Some(monthly_id) = id.monthly_id {
-            Timeframe::Monthly(get_timeframe_monthly(&mut *tx, monthly_id).await?.ok_or(DBError::TimeframeDoesNotExist(monthly_id))?)
+            Timeframe::Monthly(
+                get_timeframe_monthly(&mut *tx, monthly_id)
+                    .await?
+                    .ok_or(DBError::TimeframeDoesNotExist(monthly_id))?,
+            )
         } else {
             return Err(DBError::NoTimeframeType);
         };
@@ -687,29 +703,42 @@ pub(crate) async fn unlink_timeframe_monthly(pool: PgPool, monthly_id: i32) -> R
     Ok(())
 }
 
-pub(crate) async fn update_timeframe_once(con: &mut PgConnection, timeframe: &TimeframeOnce<HasId>) -> Result<(), DBError> {
-    sqlx::query!("UPDATE timeframe_once SET start_time = $1, end_time = $2 WHERE once_id = $3;",
+pub(crate) async fn update_timeframe_once(
+    con: &mut PgConnection,
+    timeframe: &TimeframeOnce<HasId>,
+) -> Result<(), DBError> {
+    sqlx::query!(
+        "UPDATE timeframe_once SET start_time = $1, end_time = $2 WHERE once_id = $3;",
         timeframe.start_time,
         timeframe.end_time,
-        timeframe.id(),)
-        .execute(con)
-        .await
-        .map(|_| ())
-        .map_err(DBError::CannotUpdateTimeframe)
+        timeframe.id(),
+    )
+    .execute(con)
+    .await
+    .map(|_| ())
+    .map_err(DBError::CannotUpdateTimeframe)
 }
 
-pub(crate) async fn update_timeframe_daily(con: &mut PgConnection, timeframe: &TimeframeDaily<HasId>) -> Result<(), DBError> {
-    sqlx::query!("UPDATE timeframe_daily SET start_time = $1, end_time = $2 WHERE daily_id = $3;",
+pub(crate) async fn update_timeframe_daily(
+    con: &mut PgConnection,
+    timeframe: &TimeframeDaily<HasId>,
+) -> Result<(), DBError> {
+    sqlx::query!(
+        "UPDATE timeframe_daily SET start_time = $1, end_time = $2 WHERE daily_id = $3;",
         timeframe.start_time,
         timeframe.end_time,
-        timeframe.id(),)
-        .execute(con)
-        .await
-        .map(|_| ())
-        .map_err(DBError::CannotUpdateTimeframe)
+        timeframe.id(),
+    )
+    .execute(con)
+    .await
+    .map(|_| ())
+    .map_err(DBError::CannotUpdateTimeframe)
 }
 
-pub(crate) async fn update_timeframe_weekly(con: &mut PgConnection, timeframe: &TimeframeWeekly<HasId>) -> Result<(), DBError> {
+pub(crate) async fn update_timeframe_weekly(
+    con: &mut PgConnection,
+    timeframe: &TimeframeWeekly<HasId>,
+) -> Result<(), DBError> {
     sqlx::query!("UPDATE timeframe_weekly SET start_dow = $1, start_time = $2, end_dow = $3, end_time = $4 WHERE weekly_id = $5;",
         timeframe.start_dow as _,
         timeframe.start_time,
@@ -722,7 +751,10 @@ pub(crate) async fn update_timeframe_weekly(con: &mut PgConnection, timeframe: &
         .map_err(DBError::CannotUpdateTimeframe)
 }
 
-pub(crate) async fn update_timeframe_monthly(con: &mut PgConnection, timeframe: &TimeframeMonthly<HasId>) -> Result<(), DBError> {
+pub(crate) async fn update_timeframe_monthly(
+    con: &mut PgConnection,
+    timeframe: &TimeframeMonthly<HasId>,
+) -> Result<(), DBError> {
     sqlx::query!("UPDATE timeframe_monthly SET start_dom = $1, start_time = $2, end_dom = $3, end_time = $4 WHERE monthly_id = $5;",
         timeframe.start_dom,
         timeframe.start_time,

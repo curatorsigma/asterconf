@@ -313,26 +313,37 @@ async fn update_timeframe(pool: PgPool) -> Result<(), Box<dyn std::error::Error>
     let timeframe_monthly =
         Timeframe::Monthly(TimeframeMonthly::new(12, time!(10:30), 18, time!(15:53)));
 
-    let mut inserted_once = match super::add_timeframe_to_forward(pool.clone(), 1, timeframe_once).await? {
-        Timeframe::Once(x) => x,
-        _ => { panic!() }
-    };
-    let mut inserted_daily = match super::add_timeframe_to_forward(pool.clone(), 1, timeframe_daily).await? {
-        Timeframe::Daily(x) => x,
-        _ => { panic!() }
-    };
+    let mut inserted_once =
+        match super::add_timeframe_to_forward(pool.clone(), 1, timeframe_once).await? {
+            Timeframe::Once(x) => x,
+            _ => {
+                panic!()
+            }
+        };
+    let mut inserted_daily =
+        match super::add_timeframe_to_forward(pool.clone(), 1, timeframe_daily).await? {
+            Timeframe::Daily(x) => x,
+            _ => {
+                panic!()
+            }
+        };
     let mut inserted_weekly =
         match super::add_timeframe_to_forward(pool.clone(), 1, timeframe_weekly).await? {
             Timeframe::Weekly(x) => x,
-            _ => { panic!() }
+            _ => {
+                panic!()
+            }
         };
     let mut inserted_monthly =
         match super::add_timeframe_to_forward(pool.clone(), 1, timeframe_monthly).await? {
             Timeframe::Monthly(x) => x,
-            _ => { panic!() }
+            _ => {
+                panic!()
+            }
         };
 
-    inserted_once.end_time = PrimitiveDateTime::new(date!(2022 - 01 - 01), time!(12:47)).assume_utc();
+    inserted_once.end_time =
+        PrimitiveDateTime::new(date!(2022 - 01 - 01), time!(12:47)).assume_utc();
     inserted_daily.start_time = time!(12:47);
     inserted_weekly.start_dow = DayOfWeek::Tuesday;
     inserted_monthly.end_dom = 9;
@@ -348,28 +359,19 @@ async fn update_timeframe(pool: PgPool) -> Result<(), Box<dyn std::error::Error>
     for tf in res {
         match tf {
             Timeframe::Once(x) => {
-                assert_eq!(
-                    x,
-                    inserted_once);
+                assert_eq!(x, inserted_once);
             }
             Timeframe::Daily(x) => {
-                assert_eq!(
-                    x,
-                    inserted_daily);
+                assert_eq!(x, inserted_daily);
             }
             Timeframe::Weekly(x) => {
-                assert_eq!(
-                    x,
-                    inserted_weekly);
+                assert_eq!(x, inserted_weekly);
             }
             Timeframe::Monthly(x) => {
-                assert_eq!(
-                    x,
-                    inserted_monthly);
+                assert_eq!(x, inserted_monthly);
             }
         }
-    };
+    }
 
     Ok(())
 }
-

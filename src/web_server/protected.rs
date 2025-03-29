@@ -8,7 +8,7 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::types::{CallForward, CallForwardWithTimeframes, Config, Context, HasId};
+use crate::types::{CallForwardWithTimeframes, Config, Context};
 
 pub(super) fn error_display(s: &str) -> String {
     // we cannot control hx-swap separately for hx-target and hx-target-error
@@ -39,33 +39,47 @@ pub(crate) fn create_protected_router() -> Router {
             "/web/search-extension/to",
             post(self::post::to_search_extension),
         )
+        .route("/web/timeframe/new", get(super::timeframe::new_template))
         .route(
-            "/web/timeframe/new", get(super::timeframe::new_template)
-            )
-        .route(
-            "/web/timeframe/once/new", get(super::timeframe::once::once_new_template).post(super::timeframe::once::once_new_post)
-            )
-        .route("/web/timeframe/once/:timeframeid", get(super::timeframe::once::once_show_template))
-        .route(
-            "/web/timeframe/once/:timeframeid/edit", get(super::timeframe::once::once_edit_template).post(super::timeframe::once::once_edit_post)
+            "/web/timeframe/once/new",
+            get(super::timeframe::once::once_new_template)
+                .post(super::timeframe::once::once_new_post),
         )
         .route(
-            "/web/timeframe/once/:timeframeid/delete", delete(super::timeframe::once::once_delete)
+            "/web/timeframe/once/:timeframeid",
+            get(super::timeframe::once::once_show_template),
         )
         .route(
-            "/web/timeframe/daily/new", get(super::timeframe::daily::daily_new_template).post(super::timeframe::daily::daily_new_post)
-            )
-        .route("/web/timeframe/daily/:timeframeid", get(super::timeframe::daily::daily_show_template))
-        .route(
-            "/web/timeframe/daily/:timeframeid/edit", get(super::timeframe::daily::daily_edit_template).post(super::timeframe::daily::daily_edit_post)
+            "/web/timeframe/once/:timeframeid/edit",
+            get(super::timeframe::once::once_edit_template)
+                .post(super::timeframe::once::once_edit_post),
         )
         .route(
-            "/web/timeframe/daily/:timeframeid/delete", delete(super::timeframe::daily::daily_delete)
+            "/web/timeframe/once/:timeframeid/delete",
+            delete(super::timeframe::once::once_delete),
+        )
+        .route(
+            "/web/timeframe/daily/new",
+            get(super::timeframe::daily::daily_new_template)
+                .post(super::timeframe::daily::daily_new_post),
+        )
+        .route(
+            "/web/timeframe/daily/:timeframeid",
+            get(super::timeframe::daily::daily_show_template),
+        )
+        .route(
+            "/web/timeframe/daily/:timeframeid/edit",
+            get(super::timeframe::daily::daily_edit_template)
+                .post(super::timeframe::daily::daily_edit_post),
+        )
+        .route(
+            "/web/timeframe/daily/:timeframeid/delete",
+            delete(super::timeframe::daily::daily_delete),
         )
 }
 
 #[derive(Template)]
-#[template(path = "call_forward_show.html", escape="none")]
+#[template(path = "call_forward_show.html", escape = "none")]
 pub(crate) struct SingleCallForwardShowTemplate<'a> {
     pub(crate) fwd: CallForwardWithTimeframes<'a>,
     pub(crate) contexts: Vec<&'a Context>,
@@ -74,7 +88,7 @@ pub(crate) struct SingleCallForwardShowTemplate<'a> {
 pub(super) mod get {
     use crate::{
         db::{get_all_call_forwards, get_call_forward_by_id},
-        types::{CallForward, CallForwardWithTimeframes, Context, HasId},
+        types::{CallForwardWithTimeframes, Context},
         web_server::{login::AuthSession, InternalServerErrorTemplate},
     };
 
@@ -87,7 +101,7 @@ pub(super) mod get {
     use uuid::Uuid;
 
     #[derive(Template)]
-    #[template(path = "landing.html", escape="none")]
+    #[template(path = "landing.html", escape = "none")]
     struct LandingTemplate<'a> {
         username: String,
         existing_forwards: Vec<CallForwardWithTimeframes<'a>>,
@@ -193,7 +207,7 @@ pub(super) mod get {
     }
 
     #[derive(Template)]
-    #[template(path = "call_forward_edit.html", escape="none")]
+    #[template(path = "call_forward_edit.html", escape = "none")]
     struct SingleCallForwardEditTemplate<'a> {
         current_forward: Option<CallForwardWithTimeframes<'a>>,
         contexts: Vec<&'a Context>,
