@@ -15,11 +15,13 @@ use tracing::{event, Level};
 use crate::db::{get_timeframes, DBError};
 use crate::web_server::protected::SingleCallForwardShowTemplate;
 use crate::web_server::timeframe::daily::TimeframeDailyTemplate;
+use crate::web_server::timeframe::monthly::{
+    TimeframeMonthlyEditTemplate, TimeframeMonthlyTemplate,
+};
 use crate::web_server::timeframe::once::TimeframeOnceTemplate;
 use crate::web_server::timeframe::weekly::{TimeframeWeeklyEditTemplate, TimeframeWeeklyTemplate};
 use crate::web_server::timeframe::{
-    TimeframeDailyEditTemplate, TimeframeMonthlyEditTemplate,
-    TimeframeMonthlyTemplate, TimeframeOnceEditTemplate, TimeframeShow, TimeframeTemplateError,
+    TimeframeDailyEditTemplate, TimeframeOnceEditTemplate, TimeframeShow, TimeframeTemplateError,
 };
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
@@ -377,7 +379,9 @@ impl TimeframeDaily<HasId> {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, sqlx::Type, Deserialize, Serialize)]
+#[derive(
+    Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, sqlx::Type, Deserialize, Serialize,
+)]
 #[sqlx(type_name = "DAYOFWEEK")]
 pub(crate) enum DayOfWeek {
     Monday,
@@ -418,14 +422,14 @@ impl std::str::FromStr for DayOfWeek {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Montag" => { Ok(Self::Monday) }
-            "Dienstag" => { Ok(Self::Tuesday) }
-            "Mittwoch" => { Ok(Self::Wednesday) }
-            "Donnerstag" => { Ok(Self::Thursday) }
-            "Freitag" => { Ok(Self::Friday) }
-            "Samstag" => { Ok(Self::Saturday) }
-            "Sonntag" => { Ok(Self::Sunday) }
-            _ => { Err(()) }
+            "Montag" => Ok(Self::Monday),
+            "Dienstag" => Ok(Self::Tuesday),
+            "Mittwoch" => Ok(Self::Wednesday),
+            "Donnerstag" => Ok(Self::Thursday),
+            "Freitag" => Ok(Self::Friday),
+            "Samstag" => Ok(Self::Saturday),
+            "Sonntag" => Ok(Self::Sunday),
+            _ => Err(()),
         }
     }
 }
@@ -468,11 +472,21 @@ where
         let now_dow: DayOfWeek = now.date().weekday().into();
         if self.start_dow < now_dow && now_dow < self.end_dow {
             true
-        } else if self.start_dow == now_dow && self.end_dow != now_dow && self.start_time <= now.time() {
+        } else if self.start_dow == now_dow
+            && self.end_dow != now_dow
+            && self.start_time <= now.time()
+        {
             true
-        } else if self.end_dow == now_dow && self.start_dow != now_dow && self.end_time >= now.time() {
+        } else if self.end_dow == now_dow
+            && self.start_dow != now_dow
+            && self.end_time >= now.time()
+        {
             true
-        } else if self.start_dow == self.end_dow && self.start_dow == now_dow && self.start_time <= now.time() && now.time() <= self.end_time  {
+        } else if self.start_dow == self.end_dow
+            && self.start_dow == now_dow
+            && self.start_time <= now.time()
+            && now.time() <= self.end_time
+        {
             true
         } else {
             false

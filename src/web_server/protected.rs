@@ -94,6 +94,24 @@ pub(crate) fn create_protected_router() -> Router {
             "/web/timeframe/weekly/:timeframeid/delete",
             delete(super::timeframe::weekly::weekly_delete),
         )
+        .route(
+            "/web/timeframe/monthly/new",
+            get(super::timeframe::monthly::monthly_new_template)
+                .post(super::timeframe::monthly::monthly_new_post),
+        )
+        .route(
+            "/web/timeframe/monthly/:timeframeid",
+            get(super::timeframe::monthly::monthly_show_template),
+        )
+        .route(
+            "/web/timeframe/monthly/:timeframeid/edit",
+            get(super::timeframe::monthly::monthly_edit_template)
+                .post(super::timeframe::monthly::monthly_edit_post),
+        )
+        .route(
+            "/web/timeframe/monthly/:timeframeid/delete",
+            delete(super::timeframe::monthly::monthly_delete),
+        )
 }
 
 #[derive(Template)]

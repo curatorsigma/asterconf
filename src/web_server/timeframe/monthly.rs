@@ -15,52 +15,52 @@ use uuid::Uuid;
 
 use crate::{
     db::{
-        get_timeframe_weekly, insert_timeframe, link_timeframe, unlink_timeframe_weekly,
-        update_timeframe_weekly,
+        get_timeframe_monthly, insert_timeframe, link_timeframe, unlink_timeframe_monthly,
+        update_timeframe_monthly,
     },
-    types::{Config, DayOfWeek, Timeframe, TimeframeWeekly},
+    types::{Config, Timeframe, TimeframeMonthly},
     web_server::{protected::error_display, InternalServerErrorTemplate},
 };
 
 use super::{FwdIdQuery, TimeframeEditBase, TimeframeShow};
 
 #[derive(Template)]
-#[template(path = "timeframe/timeframe-inner-weekly.html")]
-pub(crate) struct TimeframeWeeklyTemplate {
-    pub start_dow: &'static str,
+#[template(path = "timeframe_edit/timeframe-inner-monthly.html")]
+pub(crate) struct TimeframeMonthlyEditTemplate {
+    pub start_dom: i16,
     pub start_time: String,
-    pub end_dow: &'static str,
+    pub end_dom: i16,
+    pub end_time: String,
+}
+
+#[derive(Template)]
+#[template(path = "timeframe/timeframe-inner-monthly.html")]
+pub(crate) struct TimeframeMonthlyTemplate {
+    pub start_dom: i16,
+    pub start_time: String,
+    pub end_dom: i16,
     pub end_time: String,
 }
 
 #[derive(Deserialize)]
-pub(crate) struct WeeklyNewFormData {
-    start_dow: String,
+pub(crate) struct MonthlyNewFormData {
+    start_dom: i16,
     start_time: String,
-    end_dow: String,
+    end_dom: i16,
     end_time: String,
     fwd_id: i32,
 }
 
 #[derive(Template)]
-#[template(path = "timeframe_edit/timeframe-inner-weekly.html")]
-pub(crate) struct TimeframeWeeklyEditTemplate {
-    pub start_dow: DayOfWeek,
-    pub start_time: String,
-    pub end_dow: DayOfWeek,
-    pub end_time: String,
-}
-
-#[derive(Template)]
-#[template(path = "timeframe_new/timeframe-new-weekly.html")]
-pub(crate) struct TimeframeWeeklyNewTemplate {
+#[template(path = "timeframe_new/timeframe-new-monthly.html")]
+pub(crate) struct TimeframeMonthlyNewTemplate {
     /// What time is it now? Used as default in time fields
     now_time: String,
     /// ID of the forward to attach this timeframe to on POST
     fwd_id: i32,
 }
 
-pub(crate) async fn weekly_new_template(Query(query): Query<FwdIdQuery>) -> impl IntoResponse {
+pub(crate) async fn monthly_new_template(Query(query): Query<FwdIdQuery>) -> impl IntoResponse {
     let now = time::UtcDateTime::now();
     let descr = format_description!("[hour]:[minute]");
     let our_offset = match time::UtcOffset::current_local_offset() {
@@ -77,7 +77,7 @@ pub(crate) async fn weekly_new_template(Query(query): Query<FwdIdQuery>) -> impl
     };
     let offset_time = now.to_offset(our_offset);
     match offset_time.format(&descr) {
-        Ok(x) => TimeframeWeeklyNewTemplate {
+        Ok(x) => TimeframeMonthlyNewTemplate {
             now_time: x,
             fwd_id: query.fwd_id,
         }
@@ -94,9 +94,9 @@ pub(crate) async fn weekly_new_template(Query(query): Query<FwdIdQuery>) -> impl
     }
 }
 
-pub(crate) async fn weekly_new_post(
+pub(crate) async fn monthly_new_post(
     Extension(config): Extension<Arc<Config>>,
-    Form(data): Form<WeeklyNewFormData>,
+    Form(data): Form<MonthlyNewFormData>,
 ) -> impl IntoResponse {
     let descr = format_description!("[hour]:[minute]");
     // the user supplies data in assumed server local time
@@ -123,34 +123,12 @@ pub(crate) async fn weekly_new_post(
         }
     };
 
-    let start_dow_parsed = match data.start_dow.parse() {
-        Ok(x) => x,
-        Err(()) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                error_display(&format!("Der Starttag existiert nicht.")),
-            )
-                .into_response();
-        }
-    };
-    let end_dow_parsed = match data.end_dow.parse() {
-        Ok(x) => x,
-        Err(()) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                error_display(&format!("Der Endtag existiert nicht.")),
-            )
-                .into_response();
-        }
-    };
-
-    let timeframe = Timeframe::Weekly(TimeframeWeekly::new(
-        start_dow_parsed,
+    let timeframe = Timeframe::Monthly(TimeframeMonthly::new(
+        data.start_dom,
         start_time_parsed,
-        end_dow_parsed,
+        data.end_dom,
         end_time_parsed,
     ));
-
     let mut con = match config.pool.clone().acquire().await {
         Ok(x) => x,
         Err(e) => {
@@ -193,7 +171,7 @@ pub(crate) async fn weekly_new_post(
 }
 
 /// Handle a POST to the edit endpoint for an existing timeframe
-pub(crate) async fn weekly_show_template(
+pub(crate) async fn monthly_show_template(
     Extension(config): Extension<Arc<Config>>,
     Path(timeframeid): Path<i32>,
 ) -> impl IntoResponse {
@@ -209,15 +187,15 @@ pub(crate) async fn weekly_show_template(
                 .into_response();
         }
     };
-    let current = match get_timeframe_weekly(&mut con, timeframeid).await {
+    let current = match get_timeframe_monthly(&mut con, timeframeid).await {
         Ok(Some(x)) => x,
         Ok(None) => {
-            warn!("Timeframe weekly {timeframeid} was requested but not found.");
+            warn!("Timeframe monthly {timeframeid} was requested but not found.");
             return StatusCode::NOT_FOUND.into_response();
         }
         Err(e) => {
             let error_uuid = Uuid::new_v4();
-            warn!("Sending internal server error because I cannot get timeframe/weekly {timeframeid}: {e}. uuid: {error_uuid}");
+            warn!("Sending internal server error because I cannot get timeframe/monthly {timeframeid}: {e}. uuid: {error_uuid}");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 InternalServerErrorTemplate { error_uuid },
@@ -226,12 +204,12 @@ pub(crate) async fn weekly_show_template(
         }
     };
     TimeframeShow {
-        timeframe: Timeframe::Weekly(current),
+        timeframe: Timeframe::Monthly(current),
     }
     .into_response()
 }
 
-pub(crate) async fn weekly_edit_template(
+pub(crate) async fn monthly_edit_template(
     Extension(config): Extension<Arc<Config>>,
     Path(timeframeid): Path<i32>,
 ) -> impl IntoResponse {
@@ -247,15 +225,15 @@ pub(crate) async fn weekly_edit_template(
                 .into_response();
         }
     };
-    let current = match get_timeframe_weekly(&mut con, timeframeid).await {
+    let current = match get_timeframe_monthly(&mut con, timeframeid).await {
         Ok(Some(x)) => x,
         Ok(None) => {
-            warn!("Timeframe weekly {timeframeid} was requested but not found.");
+            warn!("Timeframe monthly {timeframeid} was requested but not found.");
             return StatusCode::NOT_FOUND.into_response();
         }
         Err(e) => {
             let error_uuid = Uuid::new_v4();
-            warn!("Sending internal server error because I cannot get timeframe/weekly {timeframeid}: {e}. uuid: {error_uuid}");
+            warn!("Sending internal server error because I cannot get timeframe/monthly {timeframeid}: {e}. uuid: {error_uuid}");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 InternalServerErrorTemplate { error_uuid },
@@ -264,24 +242,24 @@ pub(crate) async fn weekly_edit_template(
         }
     };
     TimeframeEditBase {
-        current: Timeframe::Weekly(current),
+        current: Timeframe::Monthly(current),
     }
     .into_response()
 }
 
 #[derive(Deserialize)]
-pub(crate) struct TimeframeWeeklyEditForm {
-    start_dow: String,
+pub(crate) struct TimeframeMonthlyEditForm {
+    start_dom: i16,
     start_time: String,
-    end_dow: String,
+    end_dom: i16,
     end_time: String,
 }
 
 /// Handle a POST to the edit endpoint for an existing timeframe
-pub(crate) async fn weekly_edit_post(
+pub(crate) async fn monthly_edit_post(
     Extension(config): Extension<Arc<Config>>,
     Path(timeframeid): Path<i32>,
-    Form(data): Form<TimeframeWeeklyEditForm>,
+    Form(data): Form<TimeframeMonthlyEditForm>,
 ) -> impl IntoResponse {
     // get the timeframe in question
     let mut con = match config.pool.clone().acquire().await {
@@ -296,7 +274,7 @@ pub(crate) async fn weekly_edit_post(
                 .into_response();
         }
     };
-    let mut timeframe = match get_timeframe_weekly(&mut con, timeframeid).await {
+    let mut timeframe = match get_timeframe_monthly(&mut con, timeframeid).await {
         Ok(Some(x)) => x,
         Ok(None) => {
             return StatusCode::NOT_FOUND.into_response();
@@ -326,16 +304,7 @@ pub(crate) async fn weekly_edit_post(
                 .into_response();
         }
     };
-    timeframe.start_dow = match data.start_dow.parse() {
-        Ok(x) => x,
-        Err(()) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                error_display(&format!("Der Starttag existiert nicht.")),
-            )
-                .into_response();
-        }
-    };
+    timeframe.start_dom = data.start_dom;
     timeframe.end_time = match Time::parse(&data.end_time, descr) {
         Ok(x) => x,
         Err(e) => {
@@ -346,20 +315,11 @@ pub(crate) async fn weekly_edit_post(
                 .into_response();
         }
     };
-    timeframe.end_dow = match data.end_dow.parse() {
-        Ok(x) => x,
-        Err(()) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                error_display(&format!("Der Starttag existiert nicht.")),
-            )
-                .into_response();
-        }
-    };
+    timeframe.end_dom = data.end_dom;
 
-    match update_timeframe_weekly(&mut con, &timeframe).await {
+    match update_timeframe_monthly(&mut con, &timeframe).await {
         Ok(()) => TimeframeShow {
-            timeframe: Timeframe::Weekly(timeframe),
+            timeframe: Timeframe::Monthly(timeframe),
         }
         .into_response(),
         Err(e) => {
@@ -375,14 +335,14 @@ pub(crate) async fn weekly_edit_post(
 }
 
 /// Handle a DELETE to the delete endpoint for an existing timeframe
-pub(crate) async fn weekly_delete(
+pub(crate) async fn monthly_delete(
     Extension(config): Extension<Arc<Config>>,
     Path(timeframeid): Path<i32>,
 ) -> impl IntoResponse {
     // unlink the timeframe
-    if let Err(e) = unlink_timeframe_weekly(config.pool.clone(), timeframeid).await {
+    if let Err(e) = unlink_timeframe_monthly(config.pool.clone(), timeframeid).await {
         let error_uuid = Uuid::new_v4();
-        warn!("Sending internal server error because I cannot unlink timeframe/weekly {timeframeid}: {e}. uuid: {error_uuid}");
+        warn!("Sending internal server error because I cannot unlink timeframe/monthly {timeframeid}: {e}. uuid: {error_uuid}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             InternalServerErrorTemplate { error_uuid },

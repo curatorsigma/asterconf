@@ -10,6 +10,7 @@ use serde::Deserialize;
 use crate::types::{HasId, Timeframe};
 
 pub mod daily;
+pub mod monthly;
 pub mod once;
 pub mod weekly;
 
@@ -62,15 +63,6 @@ pub(crate) struct TimeframeShow {
 }
 
 #[derive(Template)]
-#[template(path = "timeframe/timeframe-inner-monthly.html")]
-pub(crate) struct TimeframeMonthlyTemplate {
-    pub start_dom: i16,
-    pub start_time: String,
-    pub end_dom: i16,
-    pub end_time: String,
-}
-
-#[derive(Template)]
 #[template(path = "timeframe_edit/base.html", escape = "none")]
 pub(crate) struct TimeframeEditBase {
     pub current: Timeframe<HasId>,
@@ -91,26 +83,8 @@ pub(crate) struct TimeframeDailyEditTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "timeframe_edit/timeframe-inner-monthly.html")]
-pub(crate) struct TimeframeMonthlyEditTemplate {
-    pub start_dom: i16,
-    pub start_time: String,
-    pub end_dom: i16,
-    pub end_time: String,
-}
-
-#[derive(Template)]
 #[template(path = "timeframe_new/base.html")]
 pub(crate) struct TimeframeNewBase {
-    fwd_id: i32,
-}
-
-#[derive(Template)]
-#[template(path = "timeframe_new/timeframe-new-monthly.html")]
-pub(crate) struct TimeframeMonthlyNewTemplate {
-    /// What time is it now? Used as default in time fields
-    now_timestamp: String,
-    /// ID of the forward to attach this timeframe to on POST
     fwd_id: i32,
 }
 
