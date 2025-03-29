@@ -14,7 +14,8 @@ use tracing::{event, Level};
 
 use crate::db::{get_timeframes, DBError};
 use crate::web_server::protected::SingleCallForwardShowTemplate;
-use crate::web_server::timeframe::{TimeframeDailyEditTemplate, TimeframeDailyTemplate, TimeframeMonthlyEditTemplate, TimeframeMonthlyTemplate, TimeframeOnceEditTemplate, TimeframeOnceTemplate, TimeframeShow, TimeframeTemplateError, TimeframeWeeklyEditTemplate, TimeframeWeeklyTemplate};
+use crate::web_server::timeframe::once::TimeframeOnceTemplate;
+use crate::web_server::timeframe::{TimeframeDailyEditTemplate, TimeframeDailyTemplate, TimeframeMonthlyEditTemplate, TimeframeMonthlyTemplate, TimeframeOnceEditTemplate, TimeframeShow, TimeframeTemplateError, TimeframeWeeklyEditTemplate, TimeframeWeeklyTemplate};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct Extension {

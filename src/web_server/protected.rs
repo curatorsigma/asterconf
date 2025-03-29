@@ -43,14 +43,14 @@ pub(crate) fn create_protected_router() -> Router {
             "/web/timeframe/new", get(super::timeframe::new_template)
             )
         .route(
-            "/web/timeframe/once/new", get(super::timeframe::once_new_template).post(super::timeframe::once_new_post)
+            "/web/timeframe/once/new", get(super::timeframe::once::once_new_template).post(super::timeframe::once::once_new_post)
             )
-        .route("/web/timeframe/once/:timeframeid", get(super::timeframe::once_show_template))
+        .route("/web/timeframe/once/:timeframeid", get(super::timeframe::once::once_show_template))
         .route(
-            "/web/timeframe/once/:timeframeid/edit", get(super::timeframe::once_edit_template).post(super::timeframe::once_edit_post)
+            "/web/timeframe/once/:timeframeid/edit", get(super::timeframe::once::once_edit_template).post(super::timeframe::once::once_edit_post)
         )
         .route(
-            "/web/timeframe/once/:timeframeid/delete", delete(super::timeframe::once_delete)
+            "/web/timeframe/once/:timeframeid/delete", delete(super::timeframe::once::once_delete)
         )
 }
 
