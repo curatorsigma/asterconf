@@ -1,7 +1,7 @@
 <div class="forward-wrapper w-full p-2 border-zinc-400 border-t-0 border-2">
 <div class="tr flex justify-evenly">
 	<div class="td w-40 text-neutral-200 font-mono border-2 flex flex-col justify-center text-balance">{{ fwd.from }}</div>
-	<div class="td w-40 text-neutral-200 font-mono border-2 flex flex-col justify-center text-balance">{{ fwd.to }}</div>
+	<div class="td w-40 text-neutral-200 font-mono border-2 flex flex-col justify-center text-balance">{{ fwd.to|escape }}</div>
 	{% for ctx in contexts %}
 		<div class="w-20 flex justify-center">
 			{% if fwd.in_contexts.contains(ctx) %}

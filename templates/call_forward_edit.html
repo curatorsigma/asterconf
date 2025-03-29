@@ -23,7 +23,7 @@
 			<input class="to-extension-input-field hover:border-zinc-400 border-2"
 				name="to"
 				type="search"
-				value="{{ current.to.extension }}"
+				value="{{ current.to.extension|escape }}"
 				hx-post="/web/search-extension/to"
 				hx-trigger="input changed delay:500ms, search"
 				hx-target="next .to-search-result"

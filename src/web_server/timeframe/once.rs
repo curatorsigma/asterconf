@@ -168,7 +168,7 @@ pub(crate) async fn once_new_post(
         }
     };
     match link_timeframe(&mut con, data.fwd_id, &inserted).await {
-        Ok(x) => TimeframeShow {
+        Ok(()) => TimeframeShow {
             timeframe: inserted,
         }
         .into_response(),

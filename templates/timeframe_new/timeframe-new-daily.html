@@ -3,7 +3,7 @@
 	hx-target="this"
 	hx-swap="outerHTML"
 	hx-target-error="#error_display"
-	hx-indicator="next .indicator-from-new"
+	hx-indicator="#indicator-from-new"
 	autocomplete="off"
 	_="on cancelnew remove me"
 	class="new-timeframe tr flex w-full justify-evenly border-2 border-zinc-400 p-2">
@@ -30,10 +30,10 @@
 				<svg class="h-8 w-8 translate-x-2"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />  <polyline points="17 21 17 13 7 13 7 21" />  <polyline points="7 3 7 8 15 8" /></svg>
 			</button>
 		<div
-			class="indicator-from-new htmx-indicator inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-e-transparent
+			class="htmx-indicator inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-e-transparent
 				align-[-0.125em]
 				text-surface
-				motion-reduce:animate-[spin_1.5s_linear_infinite]">
+				motion-reduce:animate-[spin_1.5s_linear_infinite]" id="indicator-from-new">
 		<span
 			class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]"
 			>Lade.</span>
