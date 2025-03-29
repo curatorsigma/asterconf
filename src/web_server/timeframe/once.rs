@@ -42,7 +42,20 @@ pub(crate) async fn once_new_template(
     ) -> impl IntoResponse {
     let now = time::UtcDateTime::now();
     let descr = format_description!("[year]-[month]-[day]T[hour]:[minute]");
-    match now.format(&descr) {
+    let our_offset = match time::UtcOffset::current_local_offset() {
+        Ok(x) => x,
+        Err(e) => {
+            let error_uuid = Uuid::new_v4();
+            warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                InternalServerErrorTemplate { error_uuid },
+            )
+                .into_response();
+        }
+    };
+    let offset_time = now.to_offset(our_offset);
+    match offset_time.format(&descr) {
         Ok(x) => {
             TimeframeOnceNewTemplate { now_timestamp: x, fwd_id: query.fwd_id, }.into_response()
         },
@@ -64,6 +77,7 @@ pub(crate) async fn once_new_post(
         Form(data): Form<OnceNewFormData>,
     ) -> impl IntoResponse {
     let descr = format_description!("[year]-[month]-[day]T[hour]:[minute]");
+    // the user supplies data in assumed server local time
     let start_time_parsed = match PrimitiveDateTime::parse(&data.start_time, descr) {
         Ok(x) => {
             let our_offset = match time::UtcOffset::current_local_offset() {
@@ -308,7 +322,7 @@ pub(crate) async fn once_edit_post(
         Err(e) => {
             return (
                 StatusCode::BAD_REQUEST,
-                error_display("Der Startzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"),
+                error_display(&format!("Der Startzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}")),
             )
                 .into_response();
         }
@@ -332,7 +346,7 @@ pub(crate) async fn once_edit_post(
         Err(e) => {
             return (
                 StatusCode::BAD_REQUEST,
-                error_display("Der Endzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"),
+                error_display(&format!("Der Endzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}")),
             )
                 .into_response();
         }

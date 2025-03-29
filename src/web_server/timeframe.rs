@@ -20,14 +20,19 @@ pub mod once;
 
 #[derive(Debug)]
 pub(crate) enum TimeframeTemplateError {
+    /// Formatting time for output failed
     TimeFormat(time::error::Format),
+    /// Rendering itself failed
     Render(askama::Error),
+    /// time conversion failed
+    TimeConversion(time::error::IndeterminateOffset),
 }
 impl core::fmt::Display for TimeframeTemplateError {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
-            Self::TimeFormat(e) => { write!(f, "Unable to format a known-good instance of time.") }
-            Self::Render(e) => { write!(f, "Unable to render askama template.") }
+            Self::TimeFormat(e) => { write!(f, "Unable to format a known-good instance of time: {e}.") }
+            Self::Render(e) => { write!(f, "Unable to render askama template: {e}.") }
+            Self::TimeConversion(e) => { write!(f, "Unable to convert time to local offset: {e}.") }
         }
     }
 }
@@ -40,6 +45,11 @@ impl From<time::error::Format> for TimeframeTemplateError {
 impl From<askama::Error> for TimeframeTemplateError {
     fn from(value: askama::Error) -> Self {
         Self::Render(value)
+    }
+}
+impl From<time::error::IndeterminateOffset> for TimeframeTemplateError {
+    fn from(value: time::error::IndeterminateOffset) -> Self {
+        Self::TimeConversion(value)
     }
 }
 

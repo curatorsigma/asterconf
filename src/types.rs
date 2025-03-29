@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use time::macros::format_description;
 use time::{OffsetDateTime, PrimitiveDateTime, Time, UtcDateTime, Weekday};
-use tracing::{event, Level};
+use tracing::{error, event, Level};
 
 use crate::db::{get_timeframes, DBError};
 use crate::web_server::protected::SingleCallForwardShowTemplate;
@@ -260,9 +260,10 @@ impl TimeframeOnce<HasId> {
     /// Display this Timeframe for showing
     pub(crate) fn inner_display(&self) -> Result<String, TimeframeTemplateError> {
         let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        let our_offset = time::UtcOffset::current_local_offset()?;
         Ok(TimeframeOnceTemplate {
-            start_time: self.start_time.format(descr)?,
-            end_time: self.end_time.format(descr)?,
+            start_time: self.start_time.to_offset(our_offset).format(descr)?,
+            end_time: self.end_time.to_offset(our_offset).format(descr)?,
         }
         .render()?)
     }
@@ -270,9 +271,10 @@ impl TimeframeOnce<HasId> {
     /// Display this Timeframe for editing
     pub(crate) fn inner_edit_display(&self) -> Result<String, TimeframeTemplateError> {
         let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        let our_offset = time::UtcOffset::current_local_offset()?;
         Ok(TimeframeOnceEditTemplate {
-            start_time: self.start_time.format(descr)?,
-            end_time: self.end_time.format(descr)?,
+            start_time: self.start_time.to_offset(our_offset).format(descr)?,
+            end_time: self.end_time.to_offset(our_offset).format(descr)?,
         }
         .render()?)
     }
