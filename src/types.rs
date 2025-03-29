@@ -9,7 +9,7 @@ use axum_server::tls_rustls::RustlsConfig;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use time::macros::format_description;
-use time::{PrimitiveDateTime, Time, Weekday};
+use time::{OffsetDateTime, PrimitiveDateTime, Time, UtcDateTime, Weekday};
 use tracing::{event, Level};
 
 use crate::db::{get_timeframes, DBError};
@@ -223,9 +223,9 @@ where
 {
     pub(crate) once_id: S,
     /// UTC datetime when this timeframe starts
-    pub(crate) start_time: PrimitiveDateTime,
+    pub(crate) start_time: OffsetDateTime,
     /// UTC datetime when this timeframe ends
-    pub(crate) end_time: PrimitiveDateTime,
+    pub(crate) end_time: OffsetDateTime,
 }
 impl<S> TimeframeOnce<S>
 where
@@ -233,7 +233,7 @@ where
 {
     pub(crate) fn currently_active(&self) -> bool {
         let now = time::UtcDateTime::now();
-        self.start_time.as_utc() <= now && now <= self.end_time.as_utc()
+        self.start_time <= now && now <= self.end_time
     }
 }
 impl TimeframeOnce<NoId> {
@@ -244,7 +244,7 @@ impl TimeframeOnce<NoId> {
             end_time: self.end_time,
         }
     }
-    pub(crate) fn new(start_time: PrimitiveDateTime, end_time: PrimitiveDateTime) -> Self {
+    pub(crate) fn new(start_time: OffsetDateTime, end_time: OffsetDateTime) -> Self {
         Self {
             once_id: NoId {},
             start_time,

@@ -12,8 +12,8 @@ use crate::types::{
 #[test]
 fn order_on_timeframes() {
     let timeframe_once = Timeframe::Once(TimeframeOnce::new(
-        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)),
-        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)),
+        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)).assume_utc(),
+        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)).assume_utc(),
     ));
     let timeframe_daily = Timeframe::Daily(TimeframeDaily::new(time!(10:30), time!(15:53)));
     let timeframe_weekly = Timeframe::Weekly(TimeframeWeekly::new(

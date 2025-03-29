@@ -61,34 +61,58 @@ pub(crate) async fn once_new_template(
 
 pub(crate) async fn once_new_post(
         Extension(config): Extension<Arc<Config>>,
-        Extension(session): Extension<AuthSession>,
         Form(data): Form<OnceNewFormData>,
     ) -> impl IntoResponse {
     let descr = format_description!("[year]-[month]-[day]T[hour]:[minute]");
     let start_time_parsed = match PrimitiveDateTime::parse(&data.start_time, descr) {
         Ok(x) => {
-            x
+            let our_offset = match time::UtcOffset::current_local_offset() {
+                Ok(x) => x,
+                Err(e) => {
+                    let error_uuid = Uuid::new_v4();
+                    warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        InternalServerErrorTemplate { error_uuid },
+                    )
+                        .into_response();
+                }
+            };
+            x.assume_offset(our_offset)
         }
         Err(e) => {
             return (
                 StatusCode::BAD_REQUEST,
-                error_display("Der Startzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"),
+                error_display(&format!("Der Startzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}")),
             )
                 .into_response();
         }
     };
     let end_time_parsed = match PrimitiveDateTime::parse(&data.end_time, descr) {
         Ok(x) => {
-            x
+            let our_offset = match time::UtcOffset::current_local_offset() {
+                Ok(x) => x,
+                Err(e) => {
+                    let error_uuid = Uuid::new_v4();
+                    warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        InternalServerErrorTemplate { error_uuid },
+                    )
+                        .into_response();
+                }
+            };
+            x.assume_offset(our_offset)
         }
         Err(e) => {
             return (
                 StatusCode::BAD_REQUEST,
-                error_display("Der Endzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"),
+                error_display(&format!("Der Endzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}")),
             )
                 .into_response();
         }
     };
+    // both times were given in local time - we now need to add the offset to make them Utc
 
     let timeframe = Timeframe::Once(TimeframeOnce::new(start_time_parsed, end_time_parsed));
 
@@ -267,7 +291,19 @@ pub(crate) async fn once_edit_post(
     let descr = format_description!("[year]-[month]-[day]T[hour]:[minute]");
     timeframe.start_time = match PrimitiveDateTime::parse(&data.start_time, descr) {
         Ok(x) => {
-            x
+            let our_offset = match time::UtcOffset::current_local_offset() {
+                Ok(x) => x,
+                Err(e) => {
+                    let error_uuid = Uuid::new_v4();
+                    warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        InternalServerErrorTemplate { error_uuid },
+                    )
+                        .into_response();
+                }
+            };
+            x.assume_offset(our_offset)
         }
         Err(e) => {
             return (
@@ -279,7 +315,19 @@ pub(crate) async fn once_edit_post(
     };
     timeframe.end_time = match PrimitiveDateTime::parse(&data.end_time, descr) {
         Ok(x) => {
-            x
+            let our_offset = match time::UtcOffset::current_local_offset() {
+                Ok(x) => x,
+                Err(e) => {
+                    let error_uuid = Uuid::new_v4();
+                    warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        InternalServerErrorTemplate { error_uuid },
+                    )
+                        .into_response();
+                }
+            };
+            x.assume_offset(our_offset)
         }
         Err(e) => {
             return (
@@ -291,7 +339,7 @@ pub(crate) async fn once_edit_post(
     };
 
     match update_timeframe_once(&mut con, &timeframe).await {
-        Ok(x) => {
+        Ok(()) => {
             TimeframeShow {
                 timeframe: Timeframe::Once(timeframe),
             }

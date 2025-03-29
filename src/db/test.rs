@@ -190,8 +190,8 @@ async fn update_call_forward_delete_context(
 #[sqlx::test(fixtures("empty"))]
 async fn test_insert_timeframe_once(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let new_timeframe = TimeframeOnce::new(
-        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)),
-        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)),
+        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)).assume_utc(),
+        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)).assume_utc(),
     );
     let inserted_timeframe =
         super::insert_timeframe_once(&mut pool.acquire().await.unwrap(), new_timeframe).await?;
@@ -234,8 +234,8 @@ async fn test_insert_timeframe_monthly(pool: PgPool) -> Result<(), Box<dyn std::
 #[sqlx::test(fixtures("call_forward"))]
 async fn insert_timeframe_enum(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let timeframe_once = Timeframe::Once(TimeframeOnce::new(
-        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)),
-        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)),
+        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)).assume_utc(),
+        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)).assume_utc(),
     ));
     let timeframe_daily = Timeframe::Daily(TimeframeDaily::new(time!(10:30), time!(15:53)));
     let timeframe_weekly = Timeframe::Weekly(TimeframeWeekly::new(
@@ -261,8 +261,8 @@ async fn insert_timeframe_enum(pool: PgPool) -> Result<(), Box<dyn std::error::E
 #[sqlx::test(fixtures("call_forward"))]
 async fn unlink_timeframes(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let timeframe_once = Timeframe::Once(TimeframeOnce::new(
-        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)),
-        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)),
+        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)).assume_utc(),
+        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)).assume_utc(),
     ));
     let timeframe_daily = Timeframe::Daily(TimeframeDaily::new(time!(10:30), time!(15:53)));
     let timeframe_weekly = Timeframe::Weekly(TimeframeWeekly::new(
@@ -300,8 +300,8 @@ async fn unlink_timeframes(pool: PgPool) -> Result<(), Box<dyn std::error::Error
 #[sqlx::test(fixtures("call_forward"))]
 async fn update_timeframe(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let timeframe_once = Timeframe::Once(TimeframeOnce::new(
-        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)),
-        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)),
+        PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)).assume_utc(),
+        PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)).assume_utc(),
     ));
     let timeframe_daily = Timeframe::Daily(TimeframeDaily::new(time!(10:30), time!(15:53)));
     let timeframe_weekly = Timeframe::Weekly(TimeframeWeekly::new(
@@ -332,7 +332,7 @@ async fn update_timeframe(pool: PgPool) -> Result<(), Box<dyn std::error::Error>
             _ => { panic!() }
         };
 
-    inserted_once.end_time = PrimitiveDateTime::new(date!(2022 - 01 - 01), time!(12:47));
+    inserted_once.end_time = PrimitiveDateTime::new(date!(2022 - 01 - 01), time!(12:47)).assume_utc();
     inserted_daily.start_time = time!(12:47);
     inserted_weekly.start_dow = DayOfWeek::Tuesday;
     inserted_monthly.end_dom = 9;
