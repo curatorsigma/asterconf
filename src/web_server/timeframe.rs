@@ -17,6 +17,7 @@ use crate::{db::{get_timeframe_once, insert_timeframe, link_timeframe, unlink_ti
 use super::login::AuthSession;
 
 pub mod once;
+pub mod daily;
 
 #[derive(Debug)]
 pub(crate) enum TimeframeTemplateError {
@@ -126,15 +127,6 @@ pub(crate) struct TimeframeMonthlyEditTemplate {
 #[derive(Template)]
 #[template(path="timeframe_new/base.html")]
 pub(crate) struct TimeframeNewBase {
-    fwd_id: i32,
-}
-
-#[derive(Template)]
-#[template(path="timeframe_new/timeframe-new-daily.html")]
-pub(crate) struct TimeframeDailyNewTemplate {
-    /// What time is it now? Used as default in time fields
-    now_timestamp: String,
-    /// ID of the forward to attach this timeframe to on POST
     fwd_id: i32,
 }
 

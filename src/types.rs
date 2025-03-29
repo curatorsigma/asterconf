@@ -349,7 +349,7 @@ impl TimeframeDaily<HasId> {
 
     /// template out the inner part of the display for this timeframe
     pub(crate) fn inner_display(&self) -> Result<String, TimeframeTemplateError> {
-        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        let descr = format_description!("[hour]:[minute]");
         Ok(TimeframeDailyTemplate {
             start_time: self.start_time.format(descr)?,
             end_time: self.end_time.format(descr)?,
@@ -359,7 +359,7 @@ impl TimeframeDaily<HasId> {
 
     /// template out the inner part of the display for this timeframe
     pub(crate) fn inner_edit_display(&self) -> Result<String, TimeframeTemplateError> {
-        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        let descr = format_description!("[hour]:[minute]");
         Ok(TimeframeDailyEditTemplate {
             start_time: self.start_time.format(descr)?,
             end_time: self.end_time.format(descr)?,
@@ -483,7 +483,7 @@ impl TimeframeWeekly<HasId> {
 
     /// template out the inner part of the display for this timeframe
     pub(crate) fn inner_display(&self) -> Result<String, TimeframeTemplateError> {
-        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        let descr = format_description!("[hour]:[minute]");
         Ok(TimeframeWeeklyTemplate {
             start_dow: self.start_dow.string_repr(),
             start_time: self.start_time.format(descr)?,
@@ -495,7 +495,7 @@ impl TimeframeWeekly<HasId> {
 
     /// template out the inner part of the display for this timeframe
     pub(crate) fn inner_edit_display(&self) -> Result<String, TimeframeTemplateError> {
-        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        let descr = format_description!("[hour]:[minute]");
         Ok(TimeframeWeeklyEditTemplate {
             start_dow: self.start_dow.string_repr(),
             start_time: self.start_time.format(descr)?,
@@ -578,7 +578,7 @@ impl TimeframeMonthly<HasId> {
 
     /// template out the inner part of the display for this timeframe
     pub(crate) fn inner_display(&self) -> Result<String, TimeframeTemplateError> {
-        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        let descr = format_description!("[hour]:[minute]");
         Ok(TimeframeMonthlyTemplate {
             start_dom: self.start_dom,
             start_time: self.start_time.format(descr)?,
@@ -590,7 +590,7 @@ impl TimeframeMonthly<HasId> {
 
     /// template out the inner part of the display for this timeframe
     pub(crate) fn inner_edit_display(&self) -> Result<String, TimeframeTemplateError> {
-        let descr = format_description!("[year]-[month]-[day] [hour]:[minute]");
+        let descr = format_description!("[hour]:[minute]");
         Ok(TimeframeMonthlyEditTemplate {
             start_dom: self.start_dom,
             start_time: self.start_time.format(descr)?,
@@ -655,7 +655,7 @@ impl Timeframe<HasId> {
         };
         match res {
             Ok(x) => x,
-            Err(_) => "ERROR".to_owned(),
+            Err(e) => format!("{e}"),
         }
     }
 
@@ -674,7 +674,7 @@ impl Timeframe<HasId> {
         };
         match res {
             Ok(x) => x,
-            Err(_) => "????".to_owned(),
+            Err(e) => format!("{e}"),
         }
     }
 }

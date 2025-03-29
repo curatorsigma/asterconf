@@ -52,6 +52,16 @@ pub(crate) fn create_protected_router() -> Router {
         .route(
             "/web/timeframe/once/:timeframeid/delete", delete(super::timeframe::once::once_delete)
         )
+        .route(
+            "/web/timeframe/daily/new", get(super::timeframe::daily::daily_new_template).post(super::timeframe::daily::daily_new_post)
+            )
+        .route("/web/timeframe/daily/:timeframeid", get(super::timeframe::daily::daily_show_template))
+        .route(
+            "/web/timeframe/daily/:timeframeid/edit", get(super::timeframe::daily::daily_edit_template).post(super::timeframe::daily::daily_edit_post)
+        )
+        .route(
+            "/web/timeframe/daily/:timeframeid/delete", delete(super::timeframe::daily::daily_delete)
+        )
 }
 
 #[derive(Template)]
