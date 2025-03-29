@@ -216,6 +216,10 @@ impl<'a> CallForwardWithTimeframes<'a> {
     }
 }
 
+/// Timeframe that happens exactly once.
+///
+/// - Entry (i.e. elements in the GUI) are made in current local time of the server.
+/// - Comparison happens in UTC
 #[derive(Debug, sqlx::FromRow, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub(crate) struct TimeframeOnce<S>
 where
@@ -280,13 +284,37 @@ impl TimeframeOnce<HasId> {
     }
 }
 
+/// Timeframe that is repeated daily.
+///
+/// - This consists of [`start_time`] and `end_time`.
+/// - `start_time < end_time` is not enforced
+/// - Both times are stored internally in Timezone-Unaware Time
+/// - The user is always presented with times localized to the current server UTC offset
+/// - comparison always happens in current server UTC offset
+///
+/// Take the followin example (german DST):
+/// - Local time @ data-entry is UTC+01:00 (A-time)
+/// - Local time @ compairson is UTC+02:00 (B-time)
+/// - Entered timerange is 00:30-12:30 (J@entry == A == +01:00)
+/// - This is store TZ-unaware as 00:30-12:30 (NO-TZ-INFO)
+/// - At comparison time 01:00 in J@comparison == B == +02:00 this is compared TZ-unaware, and
+///   01:00 is inside the timerange, even though it is now a different local UTC offset from when
+///   the timeframe was entered
+///
+/// The rationale is, that people will probably intend "office hours start at 09:00, independent of
+/// current DST status / current local UTC offset"
 #[derive(Debug, sqlx::FromRow, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub(crate) struct TimeframeDaily<S>
 where
     S: IdState,
 {
+    /// The DB-ID of this timeframe if already present in the db
     pub(crate) daily_id: S,
+    /// when in each day does this timewindow start?
+    /// TZ-unaware, always interpreted as "in current local UTC offset"
     pub(crate) start_time: Time,
+    /// when in each day does this timewindow end?
+    /// TZ-unaware, always interpreted as "in current local UTC offset"
     pub(crate) end_time: Time,
 }
 impl<S> TimeframeDaily<S>
@@ -294,7 +322,7 @@ where
     S: IdState,
 {
     pub(crate) fn currently_active(&self) -> bool {
-        let now = time::UtcDateTime::now();
+        let now = time::OffsetDateTime::now_local().expect("Error handling from here is very difficult. Should be able to get local offset.");
         self.start_time <= now.time() && now.time() <= self.end_time
     }
 }
@@ -378,6 +406,14 @@ impl From<Weekday> for DayOfWeek {
     }
 }
 
+/// Timeframe that repeats weekly. It starts at one weekday at a certain time and ends at another
+/// weekday at another time.
+///
+/// Comparison happens in current server local UTC offset.
+/// All times are intereted TZ-unaware (as though given in the current server local UTC offset).
+///
+/// see [`TimeframeDaily`] for more discussion of TZ-handling and DST here. [`TimeframeWeekly`] behaves
+/// analogously.
 #[derive(Debug, sqlx::FromRow, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub(crate) struct TimeframeWeekly<S>
 where
@@ -385,8 +421,16 @@ where
 {
     pub(crate) weekly_id: S,
     pub(crate) start_dow: DayOfWeek,
+    /// when on the start_dow does this timewindow start?
+    /// TZ-unaware, always interpreted as "in current local UTC offset"
+    /// see [`TimeframeDaily`] for more discussion of TZ-handling here. [`TimeframeWeekly`] behaves
+    /// analogously.
     pub(crate) start_time: Time,
     pub(crate) end_dow: DayOfWeek,
+    /// when on the end_dow does this timewindow end?
+    /// TZ-unaware, always interpreted as "in current local UTC offset"
+    /// see [`TimeframeDaily`] for more discussion of TZ-handling here. [`TimeframeWeekly`] behaves
+    /// analogously.
     pub(crate) end_time: Time,
 }
 impl<S> TimeframeWeekly<S>
@@ -394,7 +438,7 @@ where
     S: IdState,
 {
     pub(crate) fn currently_active(&self) -> bool {
-        let now = time::UtcDateTime::now();
+        let now = time::OffsetDateTime::now_local().expect("Error handling from here is very difficult. Should be able to get local offset.");
         let now_dow: DayOfWeek = now.date().weekday().into();
         if self.start_dow < now_dow && now_dow < self.end_dow {
             true
@@ -462,6 +506,14 @@ impl TimeframeWeekly<HasId> {
     }
 }
 
+/// Timeframe that repeats every month.
+///
+/// It starts on a specific day-of-month at a specific time and ends on another day-of-month at
+/// another time.
+///
+/// Times are TZ-unaware, relative to the current server local UTC offset.
+/// see [`TimeframeDaily`] for more discussion of TZ-handling and DST here. [`TimeframeMonthly`] behaves
+/// analogously.
 #[derive(Debug, sqlx::FromRow, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub(crate) struct TimeframeMonthly<S>
 where
@@ -472,8 +524,12 @@ where
     /// long an individual month is anyways. so setting `end_dom = 60` is the same as setting it to
     /// `28` in february.
     pub(crate) start_dom: i16,
+    /// see [`TimeframeDaily`] for more discussion of TZ-handling and DST here. [`TimeframeMonthly`] behaves
+    /// analogously.
     pub(crate) start_time: Time,
     pub(crate) end_dom: i16,
+    /// see [`TimeframeDaily`] for more discussion of TZ-handling and DST here. [`TimeframeMonthly`] behaves
+    /// analogously.
     pub(crate) end_time: Time,
 }
 impl<S> TimeframeMonthly<S>
@@ -482,7 +538,7 @@ where
 {
     /// The current timestamp is between start_dom,start_time and end_dom,end_time
     pub(crate) fn currently_active(&self) -> bool {
-        let now = time::UtcDateTime::now();
+        let now = time::OffsetDateTime::now_local().expect("Error handling from here is very difficult. Should be able to get local offset.");
         // now.day() returns in 1-31, which safely casts to i16
         if self.start_dom < (now.day() as i16) && (now.day() as i16) < self.end_dom {
             true
