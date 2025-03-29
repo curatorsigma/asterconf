@@ -14,11 +14,12 @@ use tracing::{event, Level};
 
 use crate::db::{get_timeframes, DBError};
 use crate::web_server::protected::SingleCallForwardShowTemplate;
+use crate::web_server::timeframe::daily::TimeframeDailyTemplate;
 use crate::web_server::timeframe::once::TimeframeOnceTemplate;
+use crate::web_server::timeframe::weekly::{TimeframeWeeklyEditTemplate, TimeframeWeeklyTemplate};
 use crate::web_server::timeframe::{
-    TimeframeDailyEditTemplate, TimeframeDailyTemplate, TimeframeMonthlyEditTemplate,
+    TimeframeDailyEditTemplate, TimeframeMonthlyEditTemplate,
     TimeframeMonthlyTemplate, TimeframeOnceEditTemplate, TimeframeShow, TimeframeTemplateError,
-    TimeframeWeeklyEditTemplate, TimeframeWeeklyTemplate,
 };
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
@@ -376,7 +377,7 @@ impl TimeframeDaily<HasId> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, sqlx::Type, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Ord, sqlx::Type, Deserialize, Serialize)]
 #[sqlx(type_name = "DAYOFWEEK")]
 pub(crate) enum DayOfWeek {
     Monday,
@@ -390,13 +391,13 @@ pub(crate) enum DayOfWeek {
 impl DayOfWeek {
     fn string_repr(&self) -> &'static str {
         match self {
-            DayOfWeek::Monday => "Monday",
-            DayOfWeek::Tuesday => "Tuesday",
-            DayOfWeek::Wednesday => "Wednesday",
-            DayOfWeek::Thursday => "Thursday",
-            DayOfWeek::Friday => "Friday",
-            DayOfWeek::Saturday => "Saturday",
-            DayOfWeek::Sunday => "Sunday",
+            DayOfWeek::Monday => "Montag",
+            DayOfWeek::Tuesday => "Dienstag",
+            DayOfWeek::Wednesday => "Mittwoch",
+            DayOfWeek::Thursday => "Donnerstag",
+            DayOfWeek::Friday => "Freitag",
+            DayOfWeek::Saturday => "Samstag",
+            DayOfWeek::Sunday => "Sonntag",
         }
     }
 }
@@ -410,6 +411,21 @@ impl From<Weekday> for DayOfWeek {
             Weekday::Friday => DayOfWeek::Friday,
             Weekday::Saturday => DayOfWeek::Saturday,
             Weekday::Sunday => DayOfWeek::Sunday,
+        }
+    }
+}
+impl std::str::FromStr for DayOfWeek {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Montag" => { Ok(Self::Monday) }
+            "Dienstag" => { Ok(Self::Tuesday) }
+            "Mittwoch" => { Ok(Self::Wednesday) }
+            "Donnerstag" => { Ok(Self::Thursday) }
+            "Freitag" => { Ok(Self::Friday) }
+            "Samstag" => { Ok(Self::Saturday) }
+            "Sonntag" => { Ok(Self::Sunday) }
+            _ => { Err(()) }
         }
     }
 }
@@ -452,9 +468,11 @@ where
         let now_dow: DayOfWeek = now.date().weekday().into();
         if self.start_dow < now_dow && now_dow < self.end_dow {
             true
-        } else if self.start_dow == now_dow && self.start_time <= now.time() {
+        } else if self.start_dow == now_dow && self.end_dow != now_dow && self.start_time <= now.time() {
             true
-        } else if self.end_dow == now_dow && self.end_time >= now.time() {
+        } else if self.end_dow == now_dow && self.start_dow != now_dow && self.end_time >= now.time() {
+            true
+        } else if self.start_dow == self.end_dow && self.start_dow == now_dow && self.start_time <= now.time() && now.time() <= self.end_time  {
             true
         } else {
             false
@@ -507,9 +525,9 @@ impl TimeframeWeekly<HasId> {
     pub(crate) fn inner_edit_display(&self) -> Result<String, TimeframeTemplateError> {
         let descr = format_description!("[hour]:[minute]");
         Ok(TimeframeWeeklyEditTemplate {
-            start_dow: self.start_dow.string_repr(),
+            start_dow: self.start_dow,
             start_time: self.start_time.format(descr)?,
-            end_dow: self.end_dow.string_repr(),
+            end_dow: self.end_dow,
             end_time: self.end_time.format(descr)?,
         }
         .render()?)

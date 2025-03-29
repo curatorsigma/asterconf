@@ -1,8 +1,23 @@
-<div class="flex w-3/5 translate-y-2 justify-evenly">
-	<!--//INNER-WEEKLY::-->
-	<div class="flex h-8 w-24 justify-center border-1"><!--Startdow-Dropdown-->{{ start_dow }}</div>
-	<div class="flex h-8 w-12 justify-center border-1"><!--Startzeit - Textfeld-->{{ start_time }}</div>
-	<div>-</div>
-	<div class="flex h-8 w-24 justify-center border-1"><!--Enddow-Dropdown-->{{ end_dow }}</div>
-	<div class="flex h-8 w-12 justify-center border-1"><!--Endzeit - Textfeld-->{{ end_time }}</div>
+<div class="flex w-5/6 translate-y-2 justify-evenly text-neutral-800">
+		<select name="start_dow" class="flex h-8 w-24 justify-center border-1">
+			<option value="Montag"{% if start_dow == DayOfWeek::Monday %}selected{%endif%}>Montag</option>
+			<option value="Dienstag"{% if start_dow == DayOfWeek::Tuesday %}selected{%endif%}>Dienstag</option>
+			<option value="Mittwoch"{% if start_dow == DayOfWeek::Wednesday %}selected{%endif%}>Mittwoch</option>
+			<option value="Donnerstag"{% if start_dow == DayOfWeek::Thursday %}selected{%endif%}>Donnerstag</option>
+			<option value="Freitag"{% if start_dow == DayOfWeek::Friday %}selected{%endif%}>Freitag</option>
+			<option value="Samstag"{% if start_dow == DayOfWeek::Saturday %}selected{%endif%}>Samstag</option>
+			<option value="Sonntag"{% if start_dow == DayOfWeek::Sunday %}selected{%endif%}>Sonntag</option>
+		</select>
+		<input name="start_time" type="time" value="{{ start_time }}" class="flex h-8 w-24 justify-center border-1"></input>
+		<div class="text-white">-</div>
+		<select name="end_dow" class="flex h-8 w-24 justify-center border-1">
+			<option value="Montag"{% if end_dow == DayOfWeek::Monday %}selected{%endif%}>Montag</option>
+			<option value="Dienstag"{% if end_dow == DayOfWeek::Tuesday %}selected{%endif%}>Dienstag</option>
+			<option value="Mittwoch"{% if end_dow == DayOfWeek::Wednesday %}selected{%endif%}>Mittwoch</option>
+			<option value="Donnerstag"{% if end_dow == DayOfWeek::Thursday %}selected{%endif%}>Donnerstag</option>
+			<option value="Freitag"{% if end_dow == DayOfWeek::Friday %}selected{%endif%}>Freitag</option>
+			<option value="Samstag"{% if end_dow == DayOfWeek::Saturday %}selected{%endif%}>Samstag</option>
+			<option value="Sonntag"{% if end_dow == DayOfWeek::Sunday %}selected{%endif%}>Sonntag</option>
+		</select>
+		<input name="end_time" type="time" value="{{ end_time }}" class="flex h-8 w-24 justify-center border-1"></input>
 </div>

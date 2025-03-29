@@ -614,6 +614,10 @@ video {
   margin-right: 2rem;
 }
 
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
 .mt-3 {
   margin-top: 0.75rem;
 }
@@ -690,6 +694,10 @@ video {
 
 .w-3\/5 {
   width: 60%;
+}
+
+.w-32 {
+  width: 8rem;
 }
 
 .w-36 {
@@ -961,6 +969,11 @@ video {
 .text-sky-500 {
   --tw-text-opacity: 1;
   color: rgb(14 165 233 / var(--tw-text-opacity));
+}
+
+.text-white {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity));
 }
 
 .shadow-md {

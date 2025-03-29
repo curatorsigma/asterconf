@@ -11,6 +11,7 @@ use crate::types::{HasId, Timeframe};
 
 pub mod daily;
 pub mod once;
+pub mod weekly;
 
 #[derive(Debug)]
 pub(crate) enum TimeframeTemplateError {
@@ -61,22 +62,6 @@ pub(crate) struct TimeframeShow {
 }
 
 #[derive(Template)]
-#[template(path = "timeframe/timeframe-inner-daily.html")]
-pub(crate) struct TimeframeDailyTemplate {
-    pub start_time: String,
-    pub end_time: String,
-}
-
-#[derive(Template)]
-#[template(path = "timeframe/timeframe-inner-weekly.html")]
-pub(crate) struct TimeframeWeeklyTemplate {
-    pub start_dow: &'static str,
-    pub start_time: String,
-    pub end_dow: &'static str,
-    pub end_time: String,
-}
-
-#[derive(Template)]
 #[template(path = "timeframe/timeframe-inner-monthly.html")]
 pub(crate) struct TimeframeMonthlyTemplate {
     pub start_dom: i16,
@@ -106,15 +91,6 @@ pub(crate) struct TimeframeDailyEditTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "timeframe_edit/timeframe-inner-weekly.html")]
-pub(crate) struct TimeframeWeeklyEditTemplate {
-    pub start_dow: &'static str,
-    pub start_time: String,
-    pub end_dow: &'static str,
-    pub end_time: String,
-}
-
-#[derive(Template)]
 #[template(path = "timeframe_edit/timeframe-inner-monthly.html")]
 pub(crate) struct TimeframeMonthlyEditTemplate {
     pub start_dom: i16,
@@ -126,15 +102,6 @@ pub(crate) struct TimeframeMonthlyEditTemplate {
 #[derive(Template)]
 #[template(path = "timeframe_new/base.html")]
 pub(crate) struct TimeframeNewBase {
-    fwd_id: i32,
-}
-
-#[derive(Template)]
-#[template(path = "timeframe_new/timeframe-new-weekly.html")]
-pub(crate) struct TimeframeWeeklyNewTemplate {
-    /// What time is it now? Used as default in time fields
-    now_timestamp: String,
-    /// ID of the forward to attach this timeframe to on POST
     fwd_id: i32,
 }
 
