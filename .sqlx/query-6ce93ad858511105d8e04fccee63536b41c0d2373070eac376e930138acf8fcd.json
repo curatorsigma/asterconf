@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO map_call_forward_timeframe (fwd_id, weekly_id) VALUES ($1, $2);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6ce93ad858511105d8e04fccee63536b41c0d2373070eac376e930138acf8fcd"
+}

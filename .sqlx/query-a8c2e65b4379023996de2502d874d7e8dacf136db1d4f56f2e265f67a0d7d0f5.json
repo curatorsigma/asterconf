@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM timeframe_once WHERE once_id = $1;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a8c2e65b4379023996de2502d874d7e8dacf136db1d4f56f2e265f67a0d7d0f5"
+}

@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE timeframe_weekly SET start_dow = $1, start_time = $2, end_dow = $3, end_time = $4 WHERE weekly_id = $5;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "dayofweek",
+            "kind": {
+              "Enum": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday"
+              ]
+            }
+          }
+        },
+        "Time",
+        {
+          "Custom": {
+            "name": "dayofweek",
+            "kind": {
+              "Enum": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday"
+              ]
+            }
+          }
+        },
+        "Time",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f3f449420d7332f4f4e336b3f6c5538077f4c776b601e974f516b50c77a00537"
+}

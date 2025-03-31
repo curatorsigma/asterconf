@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM timeframe_monthly WHERE monthly_id = $1;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "03f34347b3a8b76e2daa374a1c2fc0b1b34b5477a088f94a96cddf2d07f033af"
+}

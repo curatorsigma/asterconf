@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE timeframe_monthly SET start_dom = $1, start_time = $2, end_dom = $3, end_time = $4 WHERE monthly_id = $5;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int2",
+        "Time",
+        "Int2",
+        "Time",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "edff40801efcd74d43d548f567e1b51aadc8cc3095f0d86e6c3adff7b2cf9686"
+}

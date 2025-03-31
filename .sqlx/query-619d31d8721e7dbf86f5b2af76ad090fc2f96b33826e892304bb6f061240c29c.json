@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO timeframe_monthly (start_dom, start_time, end_dom, end_time) VALUES ($1, $2, $3, $4) RETURNING monthly_id;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "monthly_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int2",
+        "Time",
+        "Int2",
+        "Time"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "619d31d8721e7dbf86f5b2af76ad090fc2f96b33826e892304bb6f061240c29c"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO map_call_forward_timeframe (fwd_id, monthly_id) VALUES ($1, $2);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ec39dcea5fab29ad113281e77a672f44bd175b7c4c57daa01f621f327c2caf87"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM timeframe_daily WHERE daily_id = $1;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f626b7f56ef1ffcd6f6dd7cce0316ecc45d0fe65972d3c1eb2ce4dc0130cb6dd"
+}

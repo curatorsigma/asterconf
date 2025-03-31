@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO timeframe_weekly (start_dow, start_time, end_dow, end_time) VALUES ($1, $2, $3, $4) RETURNING weekly_id;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "weekly_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "dayofweek",
+            "kind": {
+              "Enum": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday"
+              ]
+            }
+          }
+        },
+        "Time",
+        {
+          "Custom": {
+            "name": "dayofweek",
+            "kind": {
+              "Enum": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday"
+              ]
+            }
+          }
+        },
+        "Time"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d0c49d88ccfdb4ef01a8a04e0113e50f55d8eaa14b31d6bd04ddda1733bd4649"
+}

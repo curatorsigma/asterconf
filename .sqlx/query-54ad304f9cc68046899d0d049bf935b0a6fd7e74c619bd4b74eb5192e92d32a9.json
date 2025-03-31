@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO timeframe_daily (start_time, end_time) VALUES ($1, $2) RETURNING daily_id;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "daily_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Time",
+        "Time"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "54ad304f9cc68046899d0d049bf935b0a6fd7e74c619bd4b74eb5192e92d32a9"
+}

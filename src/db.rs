@@ -538,6 +538,8 @@ pub(crate) async fn link_timeframe<'a, 't>(
 }
 
 /// Add a timeframe to the DB and link it to the given forward
+// used by tests internally
+#[allow(dead_code)]
 pub(crate) async fn add_timeframe_to_forward(
     pool: PgPool,
     forward_id: i32,

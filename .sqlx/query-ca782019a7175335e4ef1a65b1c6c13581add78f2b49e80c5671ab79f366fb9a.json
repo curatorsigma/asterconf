@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT once_id, daily_id, weekly_id, monthly_id from map_call_forward_timeframe WHERE fwd_id = $1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "once_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "daily_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "weekly_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "monthly_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "ca782019a7175335e4ef1a65b1c6c13581add78f2b49e80c5671ab79f366fb9a"
+}

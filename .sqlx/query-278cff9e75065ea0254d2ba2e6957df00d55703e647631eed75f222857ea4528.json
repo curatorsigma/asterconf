@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO timeframe_once (start_time, end_time) VALUES ($1, $2) RETURNING once_id;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "once_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "278cff9e75065ea0254d2ba2e6957df00d55703e647631eed75f222857ea4528"
+}

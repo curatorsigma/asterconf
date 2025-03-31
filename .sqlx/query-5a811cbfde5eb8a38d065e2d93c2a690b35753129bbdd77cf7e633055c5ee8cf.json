@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE timeframe_once SET start_time = $1, end_time = $2 WHERE once_id = $3;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5a811cbfde5eb8a38d065e2d93c2a690b35753129bbdd77cf7e633055c5ee8cf"
+}

@@ -6,8 +6,7 @@ use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::Query;
 use serde::Deserialize;
-use time::{macros::{format_description, offset}, OffsetDateTime, PrimitiveDateTime, UtcDateTime, UtcOffset};
-use tracing::trace;
+use time::{macros::format_description, OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
 use crate::types::{HasId, Timeframe};
 
