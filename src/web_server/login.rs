@@ -31,7 +31,6 @@ mod post {
 
     use super::*;
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all,ret)]
     pub(super) async fn login(
         mut auth_session: super::AuthSession,
         Form(creds): Form<UserCredentials>,
@@ -80,12 +79,10 @@ mod get {
 
     use super::*;
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub async fn login() -> LoginTemplate {
         LoginTemplate {}
     }
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub async fn logout(mut auth_session: AuthSession) -> impl IntoResponse {
         match auth_session.logout().await {
             Ok(_) => Redirect::to("/login").into_response(),

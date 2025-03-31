@@ -66,7 +66,6 @@ impl AGIHandler for SHA1DigestOverAGI {
     // Note: this handler does not care about the request.
     // It simply ignores it and does the AGI digest.
     // This handler effectively works as a layer later)
-    #[tracing::instrument(name="SHA1DigestOverAGI::handle",skip(self, connection), level=Level::DEBUG)]
     async fn handle(&self, connection: &mut Connection, _: &AGIRequest) -> Result<(), AGIError> {
         let nonce = create_nonce();
         let mut hasher = Sha1::new();

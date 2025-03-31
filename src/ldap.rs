@@ -232,7 +232,6 @@ impl AuthnBackend for LDAPBackend {
         Ok(res)
     }
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all,err)]
     async fn get_user(&self, id: &UserId<Self>) -> Result<Option<User>, LDAPError> {
         let (mut handle, res) = self.get_user_no_unbind(id).await?;
         // unbind to cleanly exit the ldap session

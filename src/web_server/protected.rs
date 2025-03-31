@@ -247,7 +247,6 @@ pub(super) mod get {
         }
     }
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward(
         Extension(config): Extension<Arc<Config>>,
         Path(fwdid): Path<i32>,
@@ -292,7 +291,6 @@ pub(super) mod get {
         contexts: Vec<&'a Context>,
     }
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_edit(
         Extension(config): Extension<Arc<Config>>,
         Path(fwdid): Path<i32>,
@@ -334,7 +332,6 @@ pub(super) mod get {
         }
     }
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_new(
         Extension(config): Extension<Arc<Config>>,
     ) -> impl IntoResponse {
@@ -372,7 +369,6 @@ pub(super) mod post {
         ctx_checkboxes: Option<Vec<String>>,
     }
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_new(
         Extension(config): Extension<Arc<Config>>,
         Extension(session): Extension<AuthSession>,
@@ -450,7 +446,6 @@ pub(super) mod post {
         }
     }
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_edit(
         Extension(config): Extension<Arc<Config>>,
         axum::Extension(session): axum::Extension<AuthSession>,
@@ -609,7 +604,6 @@ pub(super) mod post {
         target: String,
     }
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn from_search_extension(
         Extension(config): Extension<Arc<Config>>,
         axum_extra::extract::Form(search_form): axum_extra::extract::Form<FromExtensionSearchForm>,
@@ -636,7 +630,6 @@ pub(super) mod post {
         }
     }
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn to_search_extension(
         Extension(config): Extension<Arc<Config>>,
         axum_extra::extract::Form(search_form): axum_extra::extract::Form<ToExtensionSearchForm>,
@@ -732,7 +725,6 @@ pub(super) mod delete {
         web_server::{login::AuthSession, InternalServerErrorTemplate},
     };
 
-    #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward_delete(
         Extension(config): Extension<Arc<Config>>,
         Extension(session): Extension<AuthSession>,
