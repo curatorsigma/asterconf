@@ -146,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "asterconf"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "askama",
  "askama_axum",
