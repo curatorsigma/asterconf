@@ -9,7 +9,7 @@ use axum::{
 };
 use axum_extra::extract::Form;
 use serde::Deserialize;
-use time::{macros::format_description, PrimitiveDateTime};
+use time::macros::format_description;
 use tracing::warn;
 use uuid::Uuid;
 
@@ -22,7 +22,7 @@ use crate::{
     web_server::{protected::error_display, InternalServerErrorTemplate},
 };
 
-use super::{FwdIdQuery, TimeframeEditBase, TimeframeShow};
+use super::{parse_datetime, FwdIdQuery, TimeframeEditBase, TimeframeShow};
 
 #[derive(Template)]
 #[template(path = "timeframe/timeframe-inner-once.html")]
@@ -85,61 +85,46 @@ pub(crate) async fn once_new_post(
     Extension(config): Extension<Arc<Config>>,
     Form(data): Form<OnceNewFormData>,
 ) -> impl IntoResponse {
-    let descr = format_description!("[year]-[month]-[day]T[hour]:[minute]");
-    // the user supplies data in assumed server local time
-    let start_time_parsed = match PrimitiveDateTime::parse(&data.start_time, descr) {
-        Ok(x) => {
-            let our_offset = match time::UtcOffset::current_local_offset() {
-                Ok(x) => x,
-                Err(e) => {
-                    let error_uuid = Uuid::new_v4();
-                    warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        InternalServerErrorTemplate { error_uuid },
-                    )
-                        .into_response();
-                }
-            };
-            x.assume_offset(our_offset)
+    let start_time_parsed = match parse_datetime(&data.start_time) {
+        Ok(x) => x,
+        Err(super::ParseDatetimeError::Offset(e)) => {
+                let error_uuid = Uuid::new_v4();
+                warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
         }
-        Err(e) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                error_display(&format!(
-                    "Der Startzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"
-                )),
-            )
-                .into_response();
-        }
-    };
-    let end_time_parsed = match PrimitiveDateTime::parse(&data.end_time, descr) {
-        Ok(x) => {
-            let our_offset = match time::UtcOffset::current_local_offset() {
-                Ok(x) => x,
-                Err(e) => {
-                    let error_uuid = Uuid::new_v4();
-                    warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        InternalServerErrorTemplate { error_uuid },
-                    )
-                        .into_response();
-                }
-            };
-            x.assume_offset(our_offset)
-        }
-        Err(e) => {
+        Err(super::ParseDatetimeError::Format(e)) => {
             return (
                 StatusCode::BAD_REQUEST,
                 error_display(&format!(
                     "Der Endzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"
                 )),
-            )
-                .into_response();
+            ).into_response()
         }
     };
-    // both times were given in local time - we now need to add the offset to make them Utc
+    let end_time_parsed = match parse_datetime(&data.end_time) {
+        Ok(x) => x,
+        Err(super::ParseDatetimeError::Offset(e)) => {
+                let error_uuid = Uuid::new_v4();
+                warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
+        }
+        Err(super::ParseDatetimeError::Format(e)) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                error_display(&format!(
+                    "Der Endzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"
+                )),
+            ).into_response()
+        }
+    };
 
     let timeframe = Timeframe::Once(TimeframeOnce::new(start_time_parsed, end_time_parsed));
 
@@ -303,57 +288,44 @@ pub(crate) async fn once_edit_post(
     };
 
     // parse the form data
-    let descr = format_description!("[year]-[month]-[day]T[hour]:[minute]");
-    timeframe.start_time = match PrimitiveDateTime::parse(&data.start_time, descr) {
-        Ok(x) => {
-            let our_offset = match time::UtcOffset::current_local_offset() {
-                Ok(x) => x,
-                Err(e) => {
-                    let error_uuid = Uuid::new_v4();
-                    warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        InternalServerErrorTemplate { error_uuid },
-                    )
-                        .into_response();
-                }
-            };
-            x.assume_offset(our_offset)
+    timeframe.start_time = match parse_datetime(&data.start_time) {
+        Ok(x) => x,
+        Err(super::ParseDatetimeError::Offset(e)) => {
+                let error_uuid = Uuid::new_v4();
+                warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
         }
-        Err(e) => {
+        Err(super::ParseDatetimeError::Format(e)) => {
             return (
                 StatusCode::BAD_REQUEST,
                 error_display(&format!(
                     "Der Startzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"
                 )),
-            )
-                .into_response();
+            ).into_response()
         }
     };
-    timeframe.end_time = match PrimitiveDateTime::parse(&data.end_time, descr) {
-        Ok(x) => {
-            let our_offset = match time::UtcOffset::current_local_offset() {
-                Ok(x) => x,
-                Err(e) => {
-                    let error_uuid = Uuid::new_v4();
-                    warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        InternalServerErrorTemplate { error_uuid },
-                    )
-                        .into_response();
-                }
-            };
-            x.assume_offset(our_offset)
+    timeframe.end_time = match parse_datetime(&data.end_time) {
+        Ok(x) => x,
+        Err(super::ParseDatetimeError::Offset(e)) => {
+                let error_uuid = Uuid::new_v4();
+                warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
         }
-        Err(e) => {
+        Err(super::ParseDatetimeError::Format(e)) => {
             return (
                 StatusCode::BAD_REQUEST,
                 error_display(&format!(
                     "Der Endzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"
                 )),
-            )
-                .into_response();
+            ).into_response()
         }
     };
 

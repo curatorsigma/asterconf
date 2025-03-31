@@ -6,6 +6,8 @@ use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::Query;
 use serde::Deserialize;
+use time::{macros::{format_description, offset}, OffsetDateTime, PrimitiveDateTime, UtcDateTime, UtcOffset};
+use tracing::trace;
 
 use crate::types::{HasId, Timeframe};
 
@@ -98,4 +100,44 @@ pub(crate) async fn new_template(Query(query): Query<FwdIdQuery>) -> impl IntoRe
         fwd_id: query.fwd_id,
     }
     .into_response()
+}
+
+#[derive(Debug)]
+enum ParseDatetimeError {
+    Offset(time::error::IndeterminateOffset),
+    Format(time::error::Parse),
+}
+impl core::fmt::Display for ParseDatetimeError {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        match self {
+            Self::Offset(e) => {
+                write!(f, "A server UTC offset could not be determined: {e}")
+            }
+            Self::Format(e) => {
+                write!(f, "The input format was not YYYY-mm-ddTHH:MM: {e}")
+            }
+        }
+    }
+}
+impl std::error::Error for ParseDatetimeError {}
+impl From<time::error::IndeterminateOffset> for ParseDatetimeError {
+    fn from(value: time::error::IndeterminateOffset) -> Self {
+        Self::Offset(value)
+    }
+}
+impl From<time::error::Parse> for ParseDatetimeError {
+    fn from(value: time::error::Parse) -> Self {
+        Self::Format(value)
+    }
+}
+
+/// Given a Datetime passed to us by a user, convert it to the best aproximate [`OffsetDateTime`].
+fn parse_datetime(time_str: &str) -> Result<OffsetDateTime, ParseDatetimeError> {
+    let descr = format_description!("[year]-[month]-[day]T[hour]:[minute]");
+    let time_parsed_primitive = PrimitiveDateTime::parse(time_str, descr)?;
+    // the time, assuming it was given in UTC
+    let time_as_if_utc = time_parsed_primitive.assume_utc();
+    // the local server UTC offset active at the time interpreted as UTC
+    let offset_at_time_interpreted_as_utc = UtcOffset::local_offset_at(time_as_if_utc)?;
+    Ok(time_parsed_primitive.assume_offset(offset_at_time_interpreted_as_utc))
 }
