@@ -127,7 +127,6 @@ impl Error for DBError {}
 ///
 /// If there is no conflicting context, this function may create another call forward from the same
 /// Extension that already has another (in other contexts)
-#[tracing::instrument(level=Level::DEBUG,skip_all,err)]
 pub async fn new_call_forward<'a>(
     config: &Config,
     new_forward: CallForward<'a, NoId>,
@@ -220,7 +219,6 @@ fn convert_to_call_forwards(
 }
 
 /// Get all call forwards that start at `startpoint`
-#[tracing::instrument(level=Level::DEBUG,skip(config),err)]
 pub async fn get_all_call_forwards<'a>(
     config: &'a Config,
 ) -> Result<Vec<CallForward<'a, HasId>>, DBError> {
@@ -237,7 +235,6 @@ pub async fn get_all_call_forwards<'a>(
 }
 
 /// Get all call forwards that start at `startpoint`
-#[tracing::instrument(level=Level::DEBUG,skip(config),err)]
 pub async fn get_call_forwards_from_startpoint<'a>(
     config: &'a Config,
     startpoint: &Extension,
@@ -257,7 +254,6 @@ pub async fn get_call_forwards_from_startpoint<'a>(
 }
 
 /// Get call forward with a specific id
-#[tracing::instrument(level=Level::DEBUG,skip(config),err)]
 pub async fn get_call_forward_by_id<'a>(
     config: &'a Config,
     fwdid: i32,
@@ -286,7 +282,6 @@ pub async fn get_call_forward_by_id<'a>(
 }
 
 /// Remove a given call forward
-#[tracing::instrument(level=Level::DEBUG,skip(config),err)]
 pub async fn delete_call_forward_by_id<'a>(config: &'a Config, fwd_id: i32) -> Result<(), DBError> {
     let mut tx = config
         .pool
@@ -304,7 +299,6 @@ pub async fn delete_call_forward_by_id<'a>(config: &'a Config, fwd_id: i32) -> R
     Ok(())
 }
 
-#[tracing::instrument(level=Level::DEBUG,skip(config),err)]
 pub async fn update_call_forward<'a>(
     config: &'a Config,
     forward: &CallForward<'a, HasId>,
