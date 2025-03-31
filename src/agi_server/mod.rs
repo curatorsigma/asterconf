@@ -126,12 +126,17 @@ fn most_specific_forward<'a, 'b>(
 ) -> Option<&'a CallForwardWithTimeframes<'b>> {
     forwards
         .iter()
+        // filter out callforwards that miss the relevant context
         .filter(|fwd| {
             fwd.in_contexts
                 .iter()
                 .any(|&x| x.asterisk_name == *context_name)
         })
-        .min_by_key(|fwd| fwd.most_specific_active_timeframe())
+        // remove forwards without active timeframe
+        .filter_map(|f| Some((f, f.most_specific_active_timeframe()?)))
+        // sort by the timeframe, take the min
+        .min_by_key(|(_, t)| *t)
+        .map(|(f, _)| f)
 }
 
 /// The route handler for call_forward
