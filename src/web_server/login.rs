@@ -24,7 +24,7 @@ pub(crate) fn create_login_router() -> Router<()> {
 }
 
 mod post {
-    use tracing::{info, warn, Level};
+    use tracing::{info, warn};
     use uuid::Uuid;
 
     use crate::web_server::InternalServerErrorTemplate;
@@ -72,7 +72,7 @@ mod post {
 }
 
 mod get {
-    use tracing::{warn, Level};
+    use tracing::warn;
     use uuid::Uuid;
 
     use crate::web_server::InternalServerErrorTemplate;

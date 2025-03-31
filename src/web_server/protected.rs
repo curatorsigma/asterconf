@@ -137,7 +137,7 @@ pub(super) mod get {
     use askama::Template;
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode};
-    use tracing::{warn, Level};
+    use tracing::warn;
     use uuid::Uuid;
 
     #[derive(Template)]
@@ -354,7 +354,7 @@ pub(super) mod post {
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode, Extension};
     use serde::Deserialize;
-    use tracing::{info, warn, Level};
+    use tracing::{info, warn};
 
     use crate::{
         db::{new_call_forward, update_call_forward, DBError},
@@ -717,7 +717,7 @@ pub(super) mod delete {
 
     use askama_axum::IntoResponse;
     use axum::{extract::Path, http::StatusCode, Extension};
-    use tracing::{info, warn, Level};
+    use tracing::{info, warn};
 
     use crate::{
         db::delete_call_forward_by_id,

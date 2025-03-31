@@ -11,6 +11,7 @@ pub(crate) mod ldap;
 pub mod types;
 mod web_server;
 
+#[cfg(test)]
 mod tests;
 
 #[tokio::main]

@@ -59,7 +59,7 @@ async fn get_call_forward_by_id(pool: PgPool) -> Result<(), Box<dyn std::error::
 
     let res = super::get_call_forward_by_id(&config, 2).await?;
     assert_eq!(res.in_contexts.len(), 2);
-    let res = super::get_call_forward_by_id(&config, 5).await.unwrap_err();
+    super::get_call_forward_by_id(&config, 5).await.unwrap_err();
     Ok(())
 }
 
