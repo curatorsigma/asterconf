@@ -1,3 +1,3 @@
 # Webserver
-## ordentliche 404 und 500 page machen
+## ordentliche 500 page machen
 
