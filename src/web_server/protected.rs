@@ -39,7 +39,10 @@ pub(crate) fn create_protected_router() -> Router {
             "/web/search-extension/to",
             post(self::post::to_search_extension),
         )
-        .route("/web/call-forward/:fwdid/active_display", get(self::get::call_forward_active))
+        .route(
+            "/web/call-forward/:fwdid/active_display",
+            get(self::get::call_forward_active),
+        )
         .route("/web/timeframe/new", get(super::timeframe::new_template))
         .route(
             "/web/timeframe/once/new",
@@ -216,7 +219,8 @@ pub(super) mod get {
             Ok(fwd) => {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
-                let with_timeframes = match fwd.try_into_with_timeframes(config.pool.clone()).await {
+                let with_timeframes = match fwd.try_into_with_timeframes(config.pool.clone()).await
+                {
                     Ok(x) => x,
                     Err(e) => {
                         let error_uuid = Uuid::new_v4();

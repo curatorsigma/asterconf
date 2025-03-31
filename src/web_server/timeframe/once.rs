@@ -88,13 +88,13 @@ pub(crate) async fn once_new_post(
     let start_time_parsed = match parse_datetime(&data.start_time) {
         Ok(x) => x,
         Err(super::ParseDatetimeError::Offset(e)) => {
-                let error_uuid = Uuid::new_v4();
-                warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    InternalServerErrorTemplate { error_uuid },
-                )
-                    .into_response();
+            let error_uuid = Uuid::new_v4();
+            warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                InternalServerErrorTemplate { error_uuid },
+            )
+                .into_response();
         }
         Err(super::ParseDatetimeError::Format(e)) => {
             return (
@@ -102,19 +102,20 @@ pub(crate) async fn once_new_post(
                 error_display(&format!(
                     "Der Endzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"
                 )),
-            ).into_response()
+            )
+                .into_response()
         }
     };
     let end_time_parsed = match parse_datetime(&data.end_time) {
         Ok(x) => x,
         Err(super::ParseDatetimeError::Offset(e)) => {
-                let error_uuid = Uuid::new_v4();
-                warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    InternalServerErrorTemplate { error_uuid },
-                )
-                    .into_response();
+            let error_uuid = Uuid::new_v4();
+            warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                InternalServerErrorTemplate { error_uuid },
+            )
+                .into_response();
         }
         Err(super::ParseDatetimeError::Format(e)) => {
             return (
@@ -122,7 +123,8 @@ pub(crate) async fn once_new_post(
                 error_display(&format!(
                     "Der Endzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"
                 )),
-            ).into_response()
+            )
+                .into_response()
         }
     };
 
@@ -291,13 +293,13 @@ pub(crate) async fn once_edit_post(
     timeframe.start_time = match parse_datetime(&data.start_time) {
         Ok(x) => x,
         Err(super::ParseDatetimeError::Offset(e)) => {
-                let error_uuid = Uuid::new_v4();
-                warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    InternalServerErrorTemplate { error_uuid },
-                )
-                    .into_response();
+            let error_uuid = Uuid::new_v4();
+            warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                InternalServerErrorTemplate { error_uuid },
+            )
+                .into_response();
         }
         Err(super::ParseDatetimeError::Format(e)) => {
             return (
@@ -305,19 +307,20 @@ pub(crate) async fn once_edit_post(
                 error_display(&format!(
                     "Der Startzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"
                 )),
-            ).into_response()
+            )
+                .into_response()
         }
     };
     timeframe.end_time = match parse_datetime(&data.end_time) {
         Ok(x) => x,
         Err(super::ParseDatetimeError::Offset(e)) => {
-                let error_uuid = Uuid::new_v4();
-                warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    InternalServerErrorTemplate { error_uuid },
-                )
-                    .into_response();
+            let error_uuid = Uuid::new_v4();
+            warn!("Sending internal server error because I cannot get the local UTC offset: {e}. uuid: {error_uuid}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                InternalServerErrorTemplate { error_uuid },
+            )
+                .into_response();
         }
         Err(super::ParseDatetimeError::Format(e)) => {
             return (
@@ -325,7 +328,8 @@ pub(crate) async fn once_edit_post(
                 error_display(&format!(
                     "Der Endzeitpunkt war nicht im Format YYYY-mm-ddTHH-MM: {e}"
                 )),
-            ).into_response()
+            )
+                .into_response()
         }
     };
 
