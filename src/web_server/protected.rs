@@ -39,6 +39,7 @@ pub(crate) fn create_protected_router() -> Router {
             "/web/search-extension/to",
             post(self::post::to_search_extension),
         )
+        .route("/web/call-forward/:fwdid/active_display", get(self::get::call_forward_active))
         .route("/web/timeframe/new", get(super::timeframe::new_template))
         .route(
             "/web/timeframe/once/new",
@@ -115,7 +116,7 @@ pub(crate) fn create_protected_router() -> Router {
 }
 
 #[derive(Template)]
-#[template(path = "call_forward_show.html", escape = "none")]
+#[template(path = "call_forward/call_forward_show.html", escape = "none")]
 pub(crate) struct SingleCallForwardShowTemplate<'a> {
     pub(crate) fwd: CallForwardWithTimeframes<'a>,
     pub(crate) contexts: Vec<&'a Context>,
@@ -204,6 +205,44 @@ pub(super) mod get {
         }
     }
 
+    /// displays a sprite depending on whether this call forward is currently active or not (a
+    /// clock that is either hidden, white or green)
+    pub(super) async fn call_forward_active(
+        Extension(config): Extension<Arc<Config>>,
+        Path(fwdid): Path<i32>,
+    ) -> impl IntoResponse {
+        let fwd_res = get_call_forward_by_id(&config, fwdid).await;
+        match fwd_res {
+            Ok(fwd) => {
+                let mut contexts = config.contexts.values().collect::<Vec<_>>();
+                contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
+                let with_timeframes = match fwd.try_into_with_timeframes(config.pool.clone()).await {
+                    Ok(x) => x,
+                    Err(e) => {
+                        let error_uuid = Uuid::new_v4();
+                        warn!("Sending internal server error because there was a problem getting timeframes for a call forward: {e}. Error-UUID: {error_uuid}");
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            InternalServerErrorTemplate { error_uuid },
+                        )
+                            .into_response();
+                    }
+                };
+                with_timeframes.show_is_currently_active().into_response()
+            }
+            Err(e) => {
+                let error_uuid = Uuid::new_v4();
+                warn!("Sending internal server error because there was a problem getting a call forward.");
+                warn!("DBError: {e}, Error-UUID: {error_uuid}");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
+            }
+        }
+    }
+
     #[tracing::instrument(level=Level::DEBUG,skip_all)]
     pub(super) async fn single_call_forward(
         Extension(config): Extension<Arc<Config>>,
@@ -243,7 +282,7 @@ pub(super) mod get {
     }
 
     #[derive(Template)]
-    #[template(path = "call_forward_edit.html", escape = "none")]
+    #[template(path = "call_forward/call_forward_edit.html", escape = "none")]
     struct SingleCallForwardEditTemplate<'a> {
         current_forward: Option<CallForwardWithTimeframes<'a>>,
         contexts: Vec<&'a Context>,

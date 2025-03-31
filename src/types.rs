@@ -223,6 +223,16 @@ impl<'a> CallForwardWithTimeframes<'a> {
         .render()
         .unwrap_or("ERROR".to_owned())
     }
+
+    pub(crate) fn show_is_currently_active(&self) -> String {
+        CallForwardActiveTemplate { fwd: self, }.render().unwrap_or("ERROR RENDERING CallForwardActiveTemplate".to_owned())
+    }
+}
+
+#[derive(Debug, Template)]
+#[template(path="call_forward/call_forward_active.html")]
+struct CallForwardActiveTemplate<'a, 'b> {
+    fwd: &'b CallForwardWithTimeframes<'a>,
 }
 
 /// Timeframe that happens exactly once.
