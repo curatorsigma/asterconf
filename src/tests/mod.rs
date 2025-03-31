@@ -1,6 +1,11 @@
-use time::{macros::{date, time}, PrimitiveDateTime};
+use time::{
+    macros::{date, time},
+    PrimitiveDateTime,
+};
 
-use crate::types::{DayOfWeek, Timeframe, TimeframeDaily, TimeframeMonthly, TimeframeOnce, TimeframeWeekly};
+use crate::types::{
+    DayOfWeek, Timeframe, TimeframeDaily, TimeframeMonthly, TimeframeOnce, TimeframeWeekly,
+};
 
 /// Tests for the different components
 
