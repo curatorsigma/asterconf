@@ -79,21 +79,6 @@ async fn insert_call_forward(pool: PgPool) -> Result<(), Box<dyn std::error::Err
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn insert_conflicting_context(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    let mut config = Config::create().await?;
-    config.pool = pool;
-
-    let forward = CallForward::<NoId>::new(
-        &config,
-        "702".to_string(),
-        "12341234".to_string(),
-        vec!["from_external".to_string()],
-    )?;
-    super::new_call_forward(&config, forward).await.unwrap_err();
-    Ok(())
-}
-
-#[sqlx::test(fixtures("call_forward"))]
 async fn delete_call_forward(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;

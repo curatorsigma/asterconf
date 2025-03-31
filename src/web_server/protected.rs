@@ -415,7 +415,13 @@ pub(super) mod post {
             Ok(x) => {
                 let mut contexts = config.contexts.values().collect::<Vec<_>>();
                 contexts.sort_unstable_by(|a, b| a.display_name.cmp(&b.display_name));
-                info!("{} Inserted a new call forward: {}->{}@{:?}", session.user.expect("route should be protected").username, x.from.extension, x.to.extension, x.in_contexts);
+                info!(
+                    "{} Inserted a new call forward: {}->{}@{:?}",
+                    session.user.expect("route should be protected").username,
+                    x.from.extension,
+                    x.to.extension,
+                    x.in_contexts
+                );
                 let with_timeframes = match x.try_into_with_timeframes(config.pool.clone()).await {
                     Ok(y) => y,
                     Err(e) => {
@@ -428,21 +434,22 @@ pub(super) mod post {
                             .into_response();
                     }
                 };
-                SingleCallForwardShowTemplate { fwd: with_timeframes, contexts }.into_response()
+                SingleCallForwardShowTemplate {
+                    fwd: with_timeframes,
+                    contexts,
+                }
+                .into_response()
             }
-            Err(DBError::OverlappingCallForwards(x, y)) => (
-                StatusCode::BAD_REQUEST,
-                error_display(&format!(
-                    "Anrufe an die Nummer {x} werden bereits weitergeleitet wenn sie von {y} kommen."
-                )),
-            )
-                .into_response(),
             Err(e) => {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem INSERTing a call forward to the db.");
                 warn!("DBError: {e}, Error-UUID: {error_uuid}");
-                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
-            },
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    InternalServerErrorTemplate { error_uuid },
+                )
+                    .into_response();
+            }
         }
     }
 

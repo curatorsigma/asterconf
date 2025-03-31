@@ -27,7 +27,6 @@ pub enum DBError {
     CannotUpdateCallForwardDestination,
     CannotSelectContexts(i32),
     CannotDeleteContextMapping(String, i32),
-    OverlappingCallForwards(Extension, Context),
     CannotInsertTimeframe(sqlx::Error),
     CannotGetNewIndex,
     CannotInsertTimeframeMap(sqlx::Error),
@@ -80,12 +79,6 @@ impl Display for DBError {
             Self::CannotDeleteContextMapping(x, y) => {
                 write!(f, "Unable to delete context {x} for call forward {y}")
             }
-            Self::OverlappingCallForwards(exten, context) => {
-                write!(
-                    f,
-                    "There is already a call forward from {exten} active in context {context}."
-                )
-            }
             Self::CannotInsertTimeframe(e) => {
                 write!(f, "Unable to insert timeframe: {e}")
             }
@@ -119,28 +112,10 @@ impl Display for DBError {
 impl Error for DBError {}
 
 /// Set or Update a call forward.
-///
-/// Note that call forwards contain data for the Contexts in which they are relevant
-/// No two call forwards from the same extension can be applicable in the same context.
-/// This function returns DBError::OverlappingCallForwards if this happens.
-///
-/// If there is no conflicting context, this function may create another call forward from the same
-/// Extension that already has another (in other contexts)
 pub async fn new_call_forward<'a>(
     config: &Config,
     new_forward: CallForward<'a, NoId>,
 ) -> Result<CallForward<'a, HasId>, DBError> {
-    let existing_forwards = get_call_forwards_from_startpoint(config, &new_forward.from).await?;
-    for fwd in existing_forwards {
-        if let Some(overlap) = fwd.intersecting_contexts(&new_forward).next() {
-            return Err(DBError::OverlappingCallForwards(
-                fwd.from.clone(),
-                (*overlap).clone(),
-            ));
-        };
-    }
-
-    // The good case: there are no overlapping call forwards with new_forward
     let mut tx = config
         .pool
         .begin()
