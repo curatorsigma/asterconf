@@ -1,5 +1,5 @@
 <div class="flex w-5/6 translate-y-2 justify-evenly text-neutral-800">
-		<select name="start_dow" class="flex h-8 w-24 justify-center border-1">
+		<select name="start_dow" class="flex h-8 w-32 justify-center border-1">
 			<option value="Montag"{% if start_dow == DayOfWeek::Monday %}selected{%endif%}>Montag</option>
 			<option value="Dienstag"{% if start_dow == DayOfWeek::Tuesday %}selected{%endif%}>Dienstag</option>
 			<option value="Mittwoch"{% if start_dow == DayOfWeek::Wednesday %}selected{%endif%}>Mittwoch</option>
@@ -10,7 +10,7 @@
 		</select>
 		<input name="start_time" type="time" value="{{ start_time }}" class="flex h-8 w-24 justify-center border-1"></input>
 		<div class="text-white">-</div>
-		<select name="end_dow" class="flex h-8 w-24 justify-center border-1">
+		<select name="end_dow" class="flex h-8 w-32 justify-center border-1">
 			<option value="Montag"{% if end_dow == DayOfWeek::Monday %}selected{%endif%}>Montag</option>
 			<option value="Dienstag"{% if end_dow == DayOfWeek::Tuesday %}selected{%endif%}>Dienstag</option>
 			<option value="Mittwoch"{% if end_dow == DayOfWeek::Wednesday %}selected{%endif%}>Mittwoch</option>
