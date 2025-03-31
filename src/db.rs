@@ -3,7 +3,6 @@ use std::error::Error;
 use std::fmt::Display;
 
 use sqlx::{postgres::PgRow, PgConnection, PgPool, Row};
-use tracing::Level;
 
 use crate::types::{
     CallForward, Config, Context, Extension, HasId, NoId, Timeframe, TimeframeDaily,
