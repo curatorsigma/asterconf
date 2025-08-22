@@ -29,7 +29,7 @@ mod post {
 
     use crate::web_server::InternalServerErrorTemplate;
 
-    use super::*;
+    use super::{Form, IntoResponse, Redirect, StatusCode, UserCredentials};
 
     pub(super) async fn login(
         mut auth_session: super::AuthSession,
@@ -77,7 +77,7 @@ mod get {
 
     use crate::web_server::InternalServerErrorTemplate;
 
-    use super::*;
+    use super::{AuthSession, IntoResponse, LoginTemplate, Redirect, StatusCode};
 
     pub async fn login() -> LoginTemplate {
         LoginTemplate {}
@@ -90,11 +90,11 @@ mod get {
                 warn!("Returning internal server error, because I could not log a user out: {e}");
                 let error_uuid = Uuid::new_v4();
                 warn!("{error_uuid}");
-                return (
+                (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     InternalServerErrorTemplate { error_uuid },
                 )
-                    .into_response();
+                    .into_response()
             }
         }
     }

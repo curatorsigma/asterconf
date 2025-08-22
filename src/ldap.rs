@@ -6,7 +6,7 @@ use tracing::{warn, Level};
 /// escape parameter such that it may be used in a search filter
 /// uses RFC2254 Section 4 and RFC4514 Section 2.4
 ///
-/// NOTE: ldap3 also has ldap3::ldap_escape,
+/// NOTE: [`ldap3`] also has [`ldap3::ldap_escape`],
 /// but that does not escape potentially dangerous characters, and only
 /// does the escape for the RFC2254-mandated chars: ()*\NUL
 fn escape_ldap_search_filter_parameter(parameter: &str) -> String {
@@ -32,7 +32,7 @@ fn escape_ldap_search_filter_parameter(parameter: &str) -> String {
             '|' => res.push_str("\\7c"),
             ' ' => res.push_str("\\20"),
             x => res.push(x),
-        };
+        }
     }
     res
 }
@@ -47,8 +47,8 @@ pub(crate) struct User {
     /// The password hash as stored in LDAP
     password_hash: String,
 }
-impl std::fmt::Debug for User {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Debug for User {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.debug_struct("User")
             .field("username", &self.username)
             .field("password_hash", &"[redacted]")
@@ -84,8 +84,8 @@ pub(crate) struct LDAPBackend {
     bind_dn: String,
     bind_pw: String,
 }
-impl std::fmt::Debug for LDAPBackend {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Debug for LDAPBackend {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.debug_struct("LDAPBackend")
             .field("bind_string", &self.bind_string)
             .field("bind_dn", &self.bind_dn)
@@ -163,29 +163,26 @@ impl LDAPBackend {
             .attrs
             .get("uid")
             .ok_or(LDAPError::AttributeMissing("uid".to_string()))?;
-        let uid = if uids.len() != 1 {
-            return Err(LDAPError::NotExactlyOneOfAttribute("uid".to_string()));
+        let uid = if uids.len() == 1 {
+            uids.iter().next().expect("In if len() == 1").to_string()
         } else {
-            uids.iter()
-                .next()
-                .expect("In else if if len() != 1")
-                .to_string()
+            return Err(LDAPError::NotExactlyOneOfAttribute("uid".to_string()));
         };
 
         let password_hashes = user_obj
             .attrs
             .get("userPassword")
             .ok_or(LDAPError::AttributeMissing("userPassword".to_string()))?;
-        let password_hash = if uids.len() != 1 {
-            return Err(LDAPError::NotExactlyOneOfAttribute(
-                "userPassword".to_string(),
-            ));
-        } else {
+        let password_hash = if uids.len() == 1 {
             password_hashes
                 .iter()
                 .next()
-                .expect("In else of if len() != 1")
+                .expect("In if len() == 1")
                 .to_string()
+        } else {
+            return Err(LDAPError::NotExactlyOneOfAttribute(
+                "userPassword".to_string(),
+            ));
         };
 
         let user = User {
@@ -205,15 +202,12 @@ impl AuthnBackend for LDAPBackend {
     #[tracing::instrument(level=Level::DEBUG,skip_all,err)]
     async fn authenticate(&self, creds: UserCredentials) -> Result<Option<User>, LDAPError> {
         let (mut handle, user) = self.get_user_no_unbind(&creds.username).await?;
-        let user = match user {
-            Some(x) => x,
-            None => {
-                warn!(
-                    "User {} tried logging in but was not found via the search filter {}",
-                    creds.username, self.user_filter
-                );
-                return Ok(None);
-            }
+        let Some(user) = user else {
+            warn!(
+                "User {} tried logging in but was not found via the search filter {}",
+                creds.username, self.user_filter
+            );
+            return Ok(None);
         };
         // we now know that the user exists.
         // try to bind as that user
@@ -250,8 +244,8 @@ pub enum LDAPError {
     AttributeMissing(String),
     NotExactlyOneOfAttribute(String),
 }
-impl std::fmt::Display for LDAPError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for LDAPError {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
             Self::CannotConnect => {
                 write!(f, "Cannot connect to the LDAPS host")
@@ -280,7 +274,7 @@ impl std::fmt::Display for LDAPError {
         }
     }
 }
-impl std::error::Error for LDAPError {}
+impl core::error::Error for LDAPError {}
 
 /// Note: we assume that testuser is present in the LDAP server here.
 /// The password has to be added as ASTERCONF_TESTUSER_PASSWORD in .env

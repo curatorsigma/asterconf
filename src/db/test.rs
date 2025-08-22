@@ -30,7 +30,9 @@ fn __load_crypto_provider() {
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn get_call_forwards_from_startpoint(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn get_call_forwards_from_startpoint(
+    pool: PgPool,
+) -> Result<(), Box<dyn core::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -42,7 +44,7 @@ async fn get_call_forwards_from_startpoint(pool: PgPool) -> Result<(), Box<dyn s
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn get_all_call_forwards(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn get_all_call_forwards(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -53,7 +55,7 @@ async fn get_all_call_forwards(pool: PgPool) -> Result<(), Box<dyn std::error::E
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn get_call_forward_by_id(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn get_call_forward_by_id(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -64,7 +66,7 @@ async fn get_call_forward_by_id(pool: PgPool) -> Result<(), Box<dyn std::error::
 }
 
 #[sqlx::test]
-async fn insert_call_forward(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn insert_call_forward(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -79,7 +81,7 @@ async fn insert_call_forward(pool: PgPool) -> Result<(), Box<dyn std::error::Err
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn delete_call_forward(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn delete_call_forward(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -94,7 +96,7 @@ async fn delete_call_forward(pool: PgPool) -> Result<(), Box<dyn std::error::Err
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn update_call_forward_change_dest(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn update_call_forward_change_dest(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -115,7 +117,9 @@ async fn update_call_forward_change_dest(pool: PgPool) -> Result<(), Box<dyn std
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn update_call_forward_change_source(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn update_call_forward_change_source(
+    pool: PgPool,
+) -> Result<(), Box<dyn core::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -131,7 +135,7 @@ async fn update_call_forward_change_source(pool: PgPool) -> Result<(), Box<dyn s
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn update_call_forward_add_context(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn update_call_forward_add_context(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -153,7 +157,7 @@ async fn update_call_forward_add_context(pool: PgPool) -> Result<(), Box<dyn std
 #[sqlx::test(fixtures("call_forward"))]
 async fn update_call_forward_delete_context(
     pool: PgPool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn core::error::Error>> {
     let mut config = Config::create().await?;
     config.pool = pool;
 
@@ -173,7 +177,7 @@ async fn update_call_forward_delete_context(
 }
 
 #[sqlx::test(fixtures("empty"))]
-async fn test_insert_timeframe_once(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_insert_timeframe_once(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let new_timeframe = TimeframeOnce::new(
         PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)).assume_utc(),
         PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)).assume_utc(),
@@ -185,7 +189,7 @@ async fn test_insert_timeframe_once(pool: PgPool) -> Result<(), Box<dyn std::err
 }
 
 #[sqlx::test(fixtures("empty"))]
-async fn test_insert_timeframe_daily(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_insert_timeframe_daily(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let new_timeframe = TimeframeDaily::new(time!(10:30), time!(15:53));
     let inserted_timeframe =
         super::insert_timeframe_daily(&mut pool.acquire().await.unwrap(), new_timeframe).await?;
@@ -194,7 +198,7 @@ async fn test_insert_timeframe_daily(pool: PgPool) -> Result<(), Box<dyn std::er
 }
 
 #[sqlx::test(fixtures("empty"))]
-async fn test_insert_timeframe_weekly(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_insert_timeframe_weekly(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let new_timeframe = TimeframeWeekly::new(
         DayOfWeek::Monday,
         time!(10:30),
@@ -208,7 +212,7 @@ async fn test_insert_timeframe_weekly(pool: PgPool) -> Result<(), Box<dyn std::e
 }
 
 #[sqlx::test(fixtures("empty"))]
-async fn test_insert_timeframe_monthly(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_insert_timeframe_monthly(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let new_timeframe = TimeframeMonthly::new(12, time!(10:30), 18, time!(15:53));
     let inserted_timeframe =
         super::insert_timeframe_monthly(&mut pool.acquire().await.unwrap(), new_timeframe).await?;
@@ -217,7 +221,7 @@ async fn test_insert_timeframe_monthly(pool: PgPool) -> Result<(), Box<dyn std::
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn insert_timeframe_enum(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn insert_timeframe_enum(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let timeframe_once = Timeframe::Once(TimeframeOnce::new(
         PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)).assume_utc(),
         PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)).assume_utc(),
@@ -244,7 +248,7 @@ async fn insert_timeframe_enum(pool: PgPool) -> Result<(), Box<dyn std::error::E
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn unlink_timeframes(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn unlink_timeframes(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let timeframe_once = Timeframe::Once(TimeframeOnce::new(
         PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)).assume_utc(),
         PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)).assume_utc(),
@@ -283,7 +287,7 @@ async fn unlink_timeframes(pool: PgPool) -> Result<(), Box<dyn std::error::Error
 }
 
 #[sqlx::test(fixtures("call_forward"))]
-async fn update_timeframe(pool: PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn update_timeframe(pool: PgPool) -> Result<(), Box<dyn core::error::Error>> {
     let timeframe_once = Timeframe::Once(TimeframeOnce::new(
         PrimitiveDateTime::new(date!(2023 - 01 - 15), time!(10:30)).assume_utc(),
         PrimitiveDateTime::new(date!(2023 - 02 - 15), time!(10:45)).assume_utc(),

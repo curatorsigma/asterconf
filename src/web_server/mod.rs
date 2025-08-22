@@ -10,7 +10,8 @@ use tower_sessions::{cookie::Key, ExpiredDeletion};
 use tower_sessions_sqlx_store::SqliteStore;
 use uuid::Uuid;
 
-use std::{str::FromStr, sync::Arc};
+use core::str::FromStr;
+use std::sync::Arc;
 
 use axum::{
     extract::Host,
@@ -38,7 +39,7 @@ pub struct Webserver {
     db: SqlitePool,
 }
 impl Webserver {
-    pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn new() -> Result<Self, Box<dyn core::error::Error>> {
         let connect_options = sqlx::sqlite::SqliteConnectOptions::new()
             .filename(".session_data.db")
             .create_if_missing(true);
@@ -51,7 +52,7 @@ impl Webserver {
     pub async fn run_web_server(
         &self,
         config: Arc<Config>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn core::error::Error>> {
         // Session layer.
         //
         // This uses `tower-sessions` to establish a layer that will provide the session
@@ -99,7 +100,7 @@ impl Webserver {
             .fallback(fallback);
 
         // run it
-        let addr = std::net::SocketAddr::from_str(&config.web_bind_string_tls)
+        let addr = core::net::SocketAddr::from_str(&config.web_bind_string_tls)
             .expect("Should be able to parse socket addr");
         event!(Level::INFO, "Webserver (HTTPS) listening on {}", addr);
 
@@ -117,11 +118,11 @@ impl Webserver {
 }
 
 fn make_https(
-    host: String,
+    host: &str,
     uri: Uri,
     http_port: u16,
     https_port: u16,
-) -> Result<Uri, Box<dyn std::error::Error>> {
+) -> Result<Uri, Box<dyn core::error::Error>> {
     let mut parts = uri.into_parts();
 
     parts.scheme = Some(axum::http::uri::Scheme::HTTPS);
@@ -140,7 +141,7 @@ async fn redirect_http_to_https(config: Arc<Config>) {
     let redir_web_bind_port = config.web_bind_port;
     let redir_web_bind_port_tls = config.web_bind_port_tls;
     let redirect = move |Host(host): Host, uri: Uri| async move {
-        match make_https(host, uri, redir_web_bind_port, redir_web_bind_port_tls) {
+        match make_https(&host, uri, redir_web_bind_port, redir_web_bind_port_tls) {
             Ok(uri) => Ok(Redirect::permanent(&uri.to_string())),
             Err(error) => {
                 tracing::warn!(%error, "failed to convert URI to HTTPS");
@@ -167,7 +168,7 @@ async fn redirect_http_to_https(config: Arc<Config>) {
     if let Err(e) = axum::serve(listener, redirect.into_make_service()).await {
         tracing::error!("Could not start the http -> https redirect server: {e}");
         panic!("Unable to start http -> https server. Unrecoverable.");
-    };
+    }
 }
 
 async fn htmx_script() -> impl IntoResponse {

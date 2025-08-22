@@ -13,7 +13,7 @@ use crate::types::{CallForwardWithTimeframes, Config, Context};
 pub(super) fn error_display(s: &str) -> String {
     // we cannot control hx-swap separately for hx-target and hx-target-error
     // so we swap outer-html and add the surrounding div all the time
-    format!("<div class=\"text-red-500 flex justify-center\" id=\"error_display\" _=\"on htmx:beforeSend from elsewhere set my innerHTML to ''\">{}</div>", s)
+    format!("<div class=\"text-red-500 flex justify-center\" id=\"error_display\" _=\"on htmx:beforeSend from elsewhere set my innerHTML to ''\">{s}</div>")
 }
 
 pub(crate) fn create_protected_router() -> Router {
@@ -132,7 +132,7 @@ pub(super) mod get {
         web_server::{login::AuthSession, InternalServerErrorTemplate},
     };
 
-    use super::*;
+    use super::{Arc, Config, Extension, SingleCallForwardShowTemplate};
 
     use askama::Template;
     use askama_axum::IntoResponse;
@@ -152,9 +152,7 @@ pub(super) mod get {
         auth_session: AuthSession,
         Extension(config): Extension<Arc<Config>>,
     ) -> impl IntoResponse {
-        let user = if let Some(x) = auth_session.user {
-            x
-        } else {
+        let Some(user) = auth_session.user else {
             let error_uuid = Uuid::new_v4();
             warn!("Sending internal server error because there is no user in the auth session. uuid: {error_uuid}");
             return (
@@ -238,11 +236,11 @@ pub(super) mod get {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem getting a call forward.");
                 warn!("DBError: {e}, Error-UUID: {error_uuid}");
-                return (
+                (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     InternalServerErrorTemplate { error_uuid },
                 )
-                    .into_response();
+                    .into_response()
             }
         }
     }
@@ -275,11 +273,11 @@ pub(super) mod get {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem getting a call forward.");
                 warn!("DBError: {e}, Error-UUID: {error_uuid}");
-                return (
+                (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     InternalServerErrorTemplate { error_uuid },
                 )
-                    .into_response();
+                    .into_response()
             }
         }
     }
@@ -323,11 +321,11 @@ pub(super) mod get {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem getting a call forward.");
                 warn!("DBError: {e}, Error-UUID: {error_uuid}");
-                return (
+                (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     InternalServerErrorTemplate { error_uuid },
                 )
-                    .into_response();
+                    .into_response()
             }
         }
     }
@@ -347,7 +345,7 @@ pub(super) mod get {
 }
 
 pub(super) mod post {
-    use super::*;
+    use super::{error_display, SingleCallForwardShowTemplate, Template, Uuid};
 
     use std::sync::Arc;
 
@@ -384,7 +382,10 @@ pub(super) mod post {
         let to_ext = crate::types::Extension::create_from_name(&config, forward_form.to);
 
         let mut contexts = vec![];
-        for ctx in forward_form.ctx_checkboxes.unwrap_or_else(|| vec![]) {
+        for ctx in forward_form
+            .ctx_checkboxes
+            .unwrap_or_else(std::vec::Vec::new)
+        {
             let Some(this_ctx) = config.contexts.get(&ctx) else {
                 return (
                     StatusCode::BAD_REQUEST,
@@ -437,11 +438,11 @@ pub(super) mod post {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem INSERTing a call forward to the db.");
                 warn!("DBError: {e}, Error-UUID: {error_uuid}");
-                return (
+                (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     InternalServerErrorTemplate { error_uuid },
                 )
-                    .into_response();
+                    .into_response()
             }
         }
     }
@@ -462,7 +463,10 @@ pub(super) mod post {
         let to_ext = crate::types::Extension::create_from_name(&config, forward_form.to);
 
         let mut contexts = vec![];
-        for ctx in forward_form.ctx_checkboxes.unwrap_or_else(|| vec![]) {
+        for ctx in forward_form
+            .ctx_checkboxes
+            .unwrap_or_else(std::vec::Vec::new)
+        {
             let Some(this_ctx) = config.contexts.get(&ctx) else {
                 return (
                     StatusCode::BAD_REQUEST,
@@ -518,7 +522,7 @@ pub(super) mod post {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem UPATEing a call forward to the db.");
                 warn!("DBError: {e}, Error-UUID: {error_uuid}");
-                return (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response();
+                (StatusCode::INTERNAL_SERVER_ERROR, InternalServerErrorTemplate { error_uuid }).into_response()
             }
         }
     }
@@ -560,7 +564,7 @@ pub(super) mod post {
         for idx in positions {
             if idx >= s.len() {
                 return None;
-            };
+            }
             match last {
                 Some(last_idx) => {
                     // push everything between last and idx as-is
@@ -570,7 +574,7 @@ pub(super) mod post {
                     // push everything to the first index
                     res.push_str(&s[0..idx]);
                 }
-            };
+            }
             // push idx with marking
             res.push_str("<b>");
             res.push(s.chars().nth(idx)?);
@@ -586,7 +590,7 @@ pub(super) mod post {
             Some(last_idx) => {
                 res.push_str(&s[last_idx + 1..]);
             }
-        };
+        }
         Some(res)
     }
 
@@ -704,7 +708,7 @@ pub(super) mod post {
 }
 
 pub(super) mod delete {
-    use super::*;
+    use super::Uuid;
 
     use std::sync::Arc;
 
@@ -736,11 +740,11 @@ pub(super) mod delete {
                 let error_uuid = Uuid::new_v4();
                 warn!("Sending internal server error because there was a problem DELETEing a call forward to the db.");
                 warn!("DBError: {e}, Error-UUID: {error_uuid}");
-                return (
+                (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     InternalServerErrorTemplate { error_uuid },
                 )
-                    .into_response();
+                    .into_response()
             }
         }
     }

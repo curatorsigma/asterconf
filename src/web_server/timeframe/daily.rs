@@ -72,11 +72,11 @@ pub(crate) async fn daily_new_template(Query(query): Query<FwdIdQuery>) -> impl 
         Err(e) => {
             let error_uuid = Uuid::new_v4();
             warn!("Sending internal server error because I cannot format a timestamp: {e}. uuid: {error_uuid}");
-            return (
+            (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 InternalServerErrorTemplate { error_uuid },
             )
-                .into_response();
+                .into_response()
         }
     }
 }
@@ -145,11 +145,11 @@ pub(crate) async fn daily_new_post(
         Err(e) => {
             let error_uuid = Uuid::new_v4();
             warn!("Sending internal server error because I cannot link a new timeframe: {e}. uuid: {error_uuid}");
-            return (
+            (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 InternalServerErrorTemplate { error_uuid },
             )
-                .into_response();
+                .into_response()
         }
     }
 }

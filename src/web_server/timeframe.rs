@@ -39,7 +39,7 @@ impl core::fmt::Display for TimeframeTemplateError {
         }
     }
 }
-impl std::error::Error for TimeframeTemplateError {}
+impl core::error::Error for TimeframeTemplateError {}
 impl From<time::error::Format> for TimeframeTemplateError {
     fn from(value: time::error::Format) -> Self {
         Self::TimeFormat(value)
@@ -118,7 +118,7 @@ impl core::fmt::Display for ParseDatetimeError {
         }
     }
 }
-impl std::error::Error for ParseDatetimeError {}
+impl core::error::Error for ParseDatetimeError {}
 impl From<time::error::IndeterminateOffset> for ParseDatetimeError {
     fn from(value: time::error::IndeterminateOffset) -> Self {
         Self::Offset(value)

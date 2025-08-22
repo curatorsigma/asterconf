@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use blazing_agi::{
@@ -24,8 +24,8 @@ use crate::{
 enum SHA1DigestError {
     DecodeError,
 }
-impl Display for SHA1DigestError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for SHA1DigestError {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
             Self::DecodeError => {
                 write!(f, "The returned digest was not decodable as u8")
@@ -33,7 +33,7 @@ impl Display for SHA1DigestError {
         }
     }
 }
-impl std::error::Error for SHA1DigestError {}
+impl core::error::Error for SHA1DigestError {}
 
 fn create_nonce() -> String {
     let mut raw_bytes = [0_u8; 20];
@@ -75,18 +75,19 @@ impl AGIHandler for SHA1DigestOverAGI {
         let expected_digest: [u8; 20] = hasher.finalize().into();
         let digest_response = connection
             .send_command(GetFullVariable::new(format!(
-                "${{SHA1(${{BLAZING_AGI_DIGEST_SECRET}}:{})}}",
-                nonce
+                "${{SHA1(${{BLAZING_AGI_DIGEST_SECRET}}:{nonce})}}"
             )))
             .await?;
         match digest_response {
             AGIResponse::Ok(inner_response) => {
                 if let Some(digest_as_str) = inner_response.value {
                     if expected_digest
-                        != *hex::decode(&digest_as_str).map_err(|_| {
+                        == *hex::decode(&digest_as_str).map_err(|_| {
                             AGIError::InnerError(Box::new(SHA1DigestError::DecodeError))
                         })?
                     {
+                        Ok(())
+                    } else {
                         event!(
                             Level::WARN,
                             "Expected Digest {}, got {}. Nonce is {}",
@@ -102,8 +103,6 @@ impl AGIHandler for SHA1DigestOverAGI {
                         Err(AGIError::ClientSideError(
                             "The Client supplied the wrong digest data.".to_string(),
                         ))
-                    } else {
-                        Ok(())
                     }
                 } else {
                     Err(AGIError::ClientSideError(
@@ -139,7 +138,7 @@ fn most_specific_forward<'a, 'b>(
         .map(|(f, _)| f)
 }
 
-/// The route handler for call_forward
+/// The route handler for `call_forward`
 #[derive(Debug)]
 struct HandleCallForward {
     config: Arc<Config>,
@@ -210,12 +209,12 @@ impl AGIHandler for HandleCallForward {
                     initial_dest.to_string(),
                 ))
                 .await?;
-        };
+        }
         Ok(())
     }
 }
 
-pub async fn run_agi_server(config: Arc<Config>) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run_agi_server(config: Arc<Config>) -> Result<(), Box<dyn core::error::Error>> {
     let agi_listener = TcpListener::bind(config.agi_bind_string.clone()).await?;
     let router = Router::new()
         .route("/call_forward", HandleCallForward::new(config.clone()))

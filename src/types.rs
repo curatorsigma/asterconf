@@ -1,7 +1,8 @@
 //! Base types used across the codebase.
+use core::fmt::Display;
+use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
-use std::{collections::HashMap, fmt::Display};
 
 use askama::Template;
 use axum_server::tls_rustls::RustlsConfig;
@@ -34,7 +35,7 @@ pub struct Extension {
     pub(crate) extension: String,
 }
 impl Display for Extension {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match &self.name {
             None => {
                 write!(f, "{}", self.extension)
@@ -46,6 +47,7 @@ impl Display for Extension {
     }
 }
 impl Extension {
+    #[must_use]
     pub fn create_from_name(config: &Config, extension: String) -> Extension {
         let exten = config.extensions.get(&extension);
         match exten {
@@ -64,13 +66,13 @@ pub struct Context {
     pub(crate) asterisk_name: String,
 }
 impl Display for Context {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{}", self.display_name)
     }
 }
 impl Context {
     /// get the correct display name from the config
-    /// return the object with display_name and asterisk_name set
+    /// return the object with `display_name` and `asterisk_name` set
     ///
     /// Returns None, if the context does not exist in the config
     pub fn create_from_name<S: AsRef<str>>(config: &Config, asterisk_name: S) -> Option<&Context> {
@@ -93,8 +95,8 @@ impl HasId {
         HasId { id: x }
     }
 }
-impl std::fmt::Display for HasId {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for HasId {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{}", self.id)
     }
 }
@@ -181,7 +183,7 @@ impl<'a> CallForward<'a, NoId> {
         let from_as_exten = Extension::create_from_name(config, from);
         let to_as_exten = Extension::create_from_name(config, to);
         let mut contexts_as_contexts: Vec<&Context> = vec![];
-        for ctx in in_contexts.into_iter() {
+        for ctx in in_contexts {
             match Context::create_from_name(config, &ctx) {
                 None => {
                     return Err(DBError::ContextDoesNotExist(ctx));
@@ -199,6 +201,7 @@ impl<'a> CallForward<'a, NoId> {
         })
     }
 
+    #[must_use]
     pub fn set_id(self, new_id: i32) -> CallForward<'a, HasId> {
         CallForward::<'a, HasId> {
             fwd_id: HasId { id: new_id },
@@ -225,7 +228,7 @@ impl<'a> CallForwardWithTimeframes<'a> {
             .min()
     }
 
-    pub(crate) fn show(&self, contexts: &Vec<&'a Context>) -> String {
+    pub(crate) fn show(&self, contexts: &[&'a Context]) -> String {
         SingleCallForwardShowTemplate {
             fwd: self.clone(),
             contexts: contexts.to_vec(),
@@ -415,7 +418,7 @@ pub(crate) enum DayOfWeek {
     Sunday,
 }
 impl DayOfWeek {
-    fn string_repr(&self) -> &'static str {
+    fn string_repr(self) -> &'static str {
         match self {
             DayOfWeek::Monday => "Montag",
             DayOfWeek::Tuesday => "Dienstag",
@@ -440,7 +443,7 @@ impl From<Weekday> for DayOfWeek {
         }
     }
 }
-impl std::str::FromStr for DayOfWeek {
+impl core::str::FromStr for DayOfWeek {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -471,13 +474,13 @@ where
 {
     pub(crate) weekly_id: S,
     pub(crate) start_dow: DayOfWeek,
-    /// when on the start_dow does this timewindow start?
+    /// when on the `start_dow` does this timewindow start?
     /// TZ-unaware, always interpreted as "in current local UTC offset"
     /// see [`TimeframeDaily`] for more discussion of TZ-handling here. [`TimeframeWeekly`] behaves
     /// analogously.
     pub(crate) start_time: Time,
     pub(crate) end_dow: DayOfWeek,
-    /// when on the end_dow does this timewindow end?
+    /// when on the `end_dow` does this timewindow end?
     /// TZ-unaware, always interpreted as "in current local UTC offset"
     /// see [`TimeframeDaily`] for more discussion of TZ-handling here. [`TimeframeWeekly`] behaves
     /// analogously.
@@ -492,27 +495,15 @@ where
             "Error handling from here is very difficult. Should be able to get local offset.",
         );
         let now_dow: DayOfWeek = now.date().weekday().into();
-        if self.start_dow < now_dow && now_dow < self.end_dow {
-            true
-        } else if self.start_dow == now_dow
-            && self.end_dow != now_dow
-            && self.start_time <= now.time()
-        {
-            true
-        } else if self.end_dow == now_dow
-            && self.start_dow != now_dow
-            && self.end_time >= now.time()
-        {
-            true
-        } else if self.start_dow == self.end_dow
-            && self.start_dow == now_dow
-            && self.start_time <= now.time()
-            && now.time() <= self.end_time
-        {
-            true
-        } else {
-            false
-        }
+        (self.start_dow < now_dow && now_dow < self.end_dow)
+            || (self.start_dow == now_dow
+                && self.end_dow != now_dow
+                && self.start_time <= now.time())
+            || (self.end_dow == now_dow && self.start_dow != now_dow && self.end_time >= now.time())
+            || (self.start_dow == self.end_dow
+                && self.start_dow == now_dow
+                && self.start_time <= now.time()
+                && now.time() <= self.end_time)
     }
 }
 impl TimeframeWeekly<NoId> {
@@ -600,21 +591,15 @@ impl<S> TimeframeMonthly<S>
 where
     S: IdState,
 {
-    /// The current timestamp is between start_dom,start_time and end_dom,end_time
+    /// The current timestamp is between `(start_dom,start_time)` and `(end_dom,end_time)`
     pub(crate) fn currently_active(&self) -> bool {
         let now = time::OffsetDateTime::now_local().expect(
             "Error handling from here is very difficult. Should be able to get local offset.",
         );
         // now.day() returns in 1-31, which safely casts to i16
-        if self.start_dom < (now.day() as i16) && (now.day() as i16) < self.end_dom {
-            true
-        } else if self.start_dom == (now.day() as i16) && self.start_time <= now.time() {
-            true
-        } else if self.end_dom == (now.day() as i16) && self.end_time >= now.time() {
-            true
-        } else {
-            false
-        }
+        (self.start_dom < (now.day() as i16) && (now.day() as i16) < self.end_dom)
+            || (self.start_dom == (now.day() as i16) && self.start_time <= now.time())
+            || (self.end_dom == (now.day() as i16) && self.end_time >= now.time())
     }
 }
 impl TimeframeMonthly<NoId> {
@@ -766,8 +751,8 @@ struct ConfigFileData {
     agi_digest_secret: String,
     ldap: LDAPConfigData,
 }
-impl std::fmt::Debug for ConfigFileData {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Debug for ConfigFileData {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.debug_struct("ConfigFileData")
             .field("extensions", &self.extensions)
             .field("contexts", &self.contexts)
@@ -798,8 +783,8 @@ struct LDAPConfigData {
     base_dn: String,
     user_filter: String,
 }
-impl std::fmt::Debug for LDAPConfigData {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Debug for LDAPConfigData {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.debug_struct("LDAPConfigData")
             .field("hostname", &self.hostname)
             .field("port", &self.port)
@@ -834,8 +819,8 @@ pub struct Config {
     pub(crate) rustls_config: RustlsConfig,
     pub(crate) ldap_config: crate::ldap::LDAPBackend,
 }
-impl std::fmt::Debug for Config {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Debug for Config {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.debug_struct("Config")
             .field("extensions", &self.extensions)
             .field("contexts", &self.contexts)
@@ -851,10 +836,7 @@ impl std::fmt::Debug for Config {
     }
 }
 impl Config {
-    // this will never be called inside the actual application (only during setup)
-    // so I don't care about proper error handling
-    // TODO: this needs to log its own errors, because it is called in lazy_static
-    pub async fn create() -> Result<Config, Box<dyn std::error::Error>> {
+    pub async fn create() -> Result<Config, Box<dyn core::error::Error>> {
         let config_path = Path::new("/etc/asterconf/config.yaml");
         let f = match File::open(config_path) {
             Ok(x) => x,

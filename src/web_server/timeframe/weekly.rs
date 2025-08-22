@@ -85,11 +85,11 @@ pub(crate) async fn weekly_new_template(Query(query): Query<FwdIdQuery>) -> impl
         Err(e) => {
             let error_uuid = Uuid::new_v4();
             warn!("Sending internal server error because I cannot format a timestamp: {e}. uuid: {error_uuid}");
-            return (
+            (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 InternalServerErrorTemplate { error_uuid },
             )
-                .into_response();
+                .into_response()
         }
     }
 }
@@ -123,25 +123,19 @@ pub(crate) async fn weekly_new_post(
         }
     };
 
-    let start_dow_parsed = match data.start_dow.parse() {
-        Ok(x) => x,
-        Err(()) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                error_display(&format!("Der Starttag existiert nicht.")),
-            )
-                .into_response();
-        }
+    let Ok(start_dow_parsed) = data.start_dow.parse() else {
+        return (
+            StatusCode::BAD_REQUEST,
+            error_display("Der Starttag existiert nicht."),
+        )
+            .into_response();
     };
-    let end_dow_parsed = match data.end_dow.parse() {
-        Ok(x) => x,
-        Err(()) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                error_display(&format!("Der Endtag existiert nicht.")),
-            )
-                .into_response();
-        }
+    let Ok(end_dow_parsed) = data.end_dow.parse() else {
+        return (
+            StatusCode::BAD_REQUEST,
+            error_display("Der Endtag existiert nicht."),
+        )
+            .into_response();
     };
 
     let timeframe = Timeframe::Weekly(TimeframeWeekly::new(
@@ -183,11 +177,11 @@ pub(crate) async fn weekly_new_post(
         Err(e) => {
             let error_uuid = Uuid::new_v4();
             warn!("Sending internal server error because I cannot link a new timeframe: {e}. uuid: {error_uuid}");
-            return (
+            (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 InternalServerErrorTemplate { error_uuid },
             )
-                .into_response();
+                .into_response()
         }
     }
 }
@@ -331,7 +325,7 @@ pub(crate) async fn weekly_edit_post(
         Err(()) => {
             return (
                 StatusCode::BAD_REQUEST,
-                error_display(&format!("Der Starttag existiert nicht.")),
+                error_display("Der Starttag existiert nicht."),
             )
                 .into_response();
         }
@@ -351,7 +345,7 @@ pub(crate) async fn weekly_edit_post(
         Err(()) => {
             return (
                 StatusCode::BAD_REQUEST,
-                error_display(&format!("Der Starttag existiert nicht.")),
+                error_display("Der Starttag existiert nicht."),
             )
                 .into_response();
         }

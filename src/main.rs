@@ -15,7 +15,7 @@ mod web_server;
 mod tests;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn core::error::Error>> {
     rustls::crypto::ring::default_provider()
         .install_default()
         .expect("Failed to install rustls crypto provider");
@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
         eprintln!("Error setting global tracing subscriber: {e}");
         Err(e)?;
-    };
+    }
 
     let config = types::Config::create().await?;
     let config_capsule = Arc::new(config);

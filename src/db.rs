@@ -1,7 +1,4 @@
-use std::error::Error;
 /// Functions for reading and writing into the DB
-use std::fmt::Display;
-
 use sqlx::{postgres::PgRow, PgConnection, PgPool, Row};
 
 use crate::types::{
@@ -37,8 +34,8 @@ pub enum DBError {
     TimeframeDoesNotExist(i32),
     CannotUpdateTimeframe(sqlx::Error),
 }
-impl Display for DBError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for DBError {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
             Self::CannotStartTransaction => {
                 write!(f, "Unable to start transaction")
@@ -109,7 +106,7 @@ impl Display for DBError {
         }
     }
 }
-impl Error for DBError {}
+impl core::error::Error for DBError {}
 
 /// Set or Update a call forward.
 pub async fn new_call_forward<'a>(
@@ -132,7 +129,7 @@ pub async fn new_call_forward<'a>(
 
     let new_id: i32 = new_id_result.get("fwd_id");
 
-    for ctx in new_forward.in_contexts.iter() {
+    for ctx in &new_forward.in_contexts {
         sqlx::query("INSERT INTO map_call_forward_context (fwd_id, context) VALUES ($1, $2)")
             .bind(new_id)
             .bind(&ctx.asterisk_name)
@@ -156,7 +153,7 @@ fn convert_to_call_forwards(
         let from_extension: String = row.get("from_extension");
         let to_extension: String = row.get("to_extension");
         let context: Option<String> = row.get("context");
-        for fwd in result.iter_mut() {
+        for fwd in &mut result.iter_mut() {
             if fwd.fwd_id == fwd_id {
                 match context {
                     None => {}
@@ -173,7 +170,7 @@ fn convert_to_call_forwards(
                         };
                     }
                 }
-            };
+            }
         }
         // this destination has no call forward already set
         // so we add a new call forward into result
@@ -193,9 +190,7 @@ fn convert_to_call_forwards(
 }
 
 /// Get all call forwards that start at `startpoint`
-pub async fn get_all_call_forwards<'a>(
-    config: &'a Config,
-) -> Result<Vec<CallForward<'a, HasId>>, DBError> {
+pub async fn get_all_call_forwards(config: &Config) -> Result<Vec<CallForward<HasId>>, DBError> {
     let call_forwards = sqlx::query(
         "SELECT call_forward.fwd_id, call_forward.from_extension, call_forward.to_extension, map_call_forward_context.context
             FROM call_forward
@@ -228,10 +223,10 @@ pub async fn get_call_forwards_from_startpoint<'a>(
 }
 
 /// Get call forward with a specific id
-pub async fn get_call_forward_by_id<'a>(
-    config: &'a Config,
+pub async fn get_call_forward_by_id(
+    config: &Config,
     fwdid: i32,
-) -> Result<CallForward<'a, HasId>, DBError> {
+) -> Result<CallForward<HasId>, DBError> {
     let call_forwards = sqlx::query(
         "SELECT call_forward.fwd_id, call_forward.from_extension, call_forward.to_extension, map_call_forward_context.context
             FROM call_forward
@@ -256,7 +251,7 @@ pub async fn get_call_forward_by_id<'a>(
 }
 
 /// Remove a given call forward
-pub async fn delete_call_forward_by_id<'a>(config: &'a Config, fwd_id: i32) -> Result<(), DBError> {
+pub async fn delete_call_forward_by_id(config: &Config, fwd_id: i32) -> Result<(), DBError> {
     let mut tx = config
         .pool
         .begin()
@@ -455,10 +450,10 @@ pub(crate) async fn insert_timeframe(
 }
 
 /// Given a timeframe already existing, link it to the forward given by `forward_id`.
-pub(crate) async fn link_timeframe<'a, 't>(
-    con: &'t mut PgConnection,
+pub(crate) async fn link_timeframe(
+    con: &mut PgConnection,
     forward_id: i32,
-    timeframe: &'a Timeframe<HasId>,
+    timeframe: &Timeframe<HasId>,
 ) -> Result<(), DBError> {
     match timeframe {
         Timeframe::Once(x) => {
@@ -501,7 +496,7 @@ pub(crate) async fn link_timeframe<'a, 't>(
             .await
             .map_err(DBError::CannotInsertTimeframeMap)?;
         }
-    };
+    }
     Ok(())
 }
 
@@ -519,8 +514,8 @@ pub(crate) async fn add_timeframe_to_forward(
         .begin()
         .await
         .map_err(|_| DBError::CannotStartTransaction)?;
-    let inserted = insert_timeframe(&mut *tx, timeframe).await?;
-    link_timeframe(&mut *tx, forward_id, &inserted).await?;
+    let inserted = insert_timeframe(&mut tx, timeframe).await?;
+    link_timeframe(&mut tx, forward_id, &inserted).await?;
     tx.commit()
         .await
         .map_err(|_| DBError::CannotCommitTransaction)?;
@@ -600,25 +595,25 @@ pub(crate) async fn get_timeframes(
     for id in timeframe_ids {
         let timeframe = if let Some(once_id) = id.once_id {
             Timeframe::Once(
-                get_timeframe_once(&mut *tx, once_id)
+                get_timeframe_once(&mut tx, once_id)
                     .await?
                     .ok_or(DBError::TimeframeDoesNotExist(once_id))?,
             )
         } else if let Some(daily_id) = id.daily_id {
             Timeframe::Daily(
-                get_timeframe_daily(&mut *tx, daily_id)
+                get_timeframe_daily(&mut tx, daily_id)
                     .await?
                     .ok_or(DBError::TimeframeDoesNotExist(daily_id))?,
             )
         } else if let Some(weekly_id) = id.weekly_id {
             Timeframe::Weekly(
-                get_timeframe_weekly(&mut *tx, weekly_id)
+                get_timeframe_weekly(&mut tx, weekly_id)
                     .await?
                     .ok_or(DBError::TimeframeDoesNotExist(weekly_id))?,
             )
         } else if let Some(monthly_id) = id.monthly_id {
             Timeframe::Monthly(
-                get_timeframe_monthly(&mut *tx, monthly_id)
+                get_timeframe_monthly(&mut tx, monthly_id)
                     .await?
                     .ok_or(DBError::TimeframeDoesNotExist(monthly_id))?,
             )
