@@ -22,7 +22,7 @@ pub enum DBError {
     CannotInsertContextMapping(String, i32),
     CannotSelectCallForwards,
     ContextDoesNotExist(String),
-    CannotDeleteCallForward,
+    CannotDeleteCallForward(sqlx::Error),
     CannotSelectCallForward(i32),
     CannotUpdateCallForwardDestination,
     CannotSelectContexts(i32),
@@ -67,8 +67,8 @@ impl Display for DBError {
             Self::ContextDoesNotExist(x) => {
                 write!(f, "The context with name {x} does not exit in the config")
             }
-            Self::CannotDeleteCallForward => {
-                write!(f, "Unable to delete call forward")
+            Self::CannotDeleteCallForward(e) => {
+                write!(f, "Unable to delete call forward: {e}")
             }
             Self::CannotUpdateCallForwardDestination => {
                 write!(f, "Unable to update the destination of a call forward")
@@ -266,7 +266,7 @@ pub async fn delete_call_forward_by_id<'a>(config: &'a Config, fwd_id: i32) -> R
         .bind(fwd_id)
         .execute(&mut *tx)
         .await
-        .map_err(|_| DBError::CannotDeleteCallForward)?;
+        .map_err(DBError::CannotDeleteCallForward)?;
     tx.commit()
         .await
         .map_err(|_| DBError::CannotCommitTransaction)?;
