@@ -113,6 +113,16 @@ impl From<i32> for HasId {
         Self { id: value }
     }
 }
+impl PartialEq<i32> for HasId {
+    fn eq(&self, other: &i32) -> bool {
+        self.id == *other
+    }
+}
+impl PartialEq<HasId> for i32 {
+    fn eq(&self, other: &HasId) -> bool {
+        other == self
+    }
+}
 impl IdState for HasId {}
 
 #[derive(Debug, Clone, PartialEq)]

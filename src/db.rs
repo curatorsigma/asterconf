@@ -157,7 +157,7 @@ fn convert_to_call_forwards(
         let to_extension: String = row.get("to_extension");
         let context: Option<String> = row.get("context");
         for fwd in result.iter_mut() {
-            if fwd.to.extension == to_extension && fwd.from.extension == from_extension {
+            if fwd.fwd_id == fwd_id {
                 match context {
                     None => {}
                     Some(context_name) => {
