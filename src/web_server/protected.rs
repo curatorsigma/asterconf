@@ -384,14 +384,7 @@ pub(super) mod post {
         let to_ext = crate::types::Extension::create_from_name(&config, forward_form.to);
 
         let mut contexts = vec![];
-        let Some(ctx_checkboxes) = forward_form.ctx_checkboxes else {
-            return (
-                StatusCode::BAD_REQUEST,
-                error_display("Eine Weiterleitung muss mindestens einen Kontext enthalten."),
-            )
-                .into_response();
-        };
-        for ctx in ctx_checkboxes {
+        for ctx in forward_form.ctx_checkboxes.unwrap_or_else(|| vec![]) {
             let Some(this_ctx) = config.contexts.get(&ctx) else {
                 return (
                     StatusCode::BAD_REQUEST,
@@ -469,14 +462,7 @@ pub(super) mod post {
         let to_ext = crate::types::Extension::create_from_name(&config, forward_form.to);
 
         let mut contexts = vec![];
-        let Some(ctx_checkboxes) = forward_form.ctx_checkboxes else {
-            return (
-                StatusCode::BAD_REQUEST,
-                error_display("Eine Weiterleitung muss mindestens einen Kontext enthalten dessen Anrufe weitergeleitet werden."),
-            )
-                .into_response();
-        };
-        for ctx in ctx_checkboxes {
+        for ctx in forward_form.ctx_checkboxes.unwrap_or_else(|| vec![]) {
             let Some(this_ctx) = config.contexts.get(&ctx) else {
                 return (
                     StatusCode::BAD_REQUEST,
